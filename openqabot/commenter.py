@@ -12,7 +12,7 @@ from openqabot.errors import NoResultsError
 
 from . import OBS_URL
 from .loader.qem import get_aggregate_results, get_incident_results, get_incidents
-from .openqa import openQAInterface
+from .openqa import OpenQAInterface
 from .osclib.comments import CommentAPI
 from .types.incident import Incident
 
@@ -23,7 +23,7 @@ class Commenter:
     def __init__(self, args: Namespace) -> None:
         self.dry = args.dry
         self.token = {"Authorization": f"Token {args.token}"}
-        self.client = openQAInterface(args)
+        self.client = OpenQAInterface(args)
         self.incidents = get_incidents(self.token)
         osc.conf.get_config(override_apiurl=OBS_URL)
         self.commentapi = CommentAPI(OBS_URL)

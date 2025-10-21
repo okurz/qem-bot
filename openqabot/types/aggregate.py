@@ -8,7 +8,7 @@ from typing import Any, Optional, Union
 
 from .. import DOWNLOAD_BASE, QEM_DASHBOARD, SMELT_URL
 from ..dashboard import get_json
-from ..errors import NoTestIssues, SameBuildExists
+from ..errors import NoTestIssuesError, SameBuildExistsError
 from ..loader.repohash import merge_repohash
 from ..pc_helper import apply_pc_tools_image, apply_publiccloud_pint_image
 from . import ProdVer, Repos
@@ -40,7 +40,7 @@ class Aggregate(BaseConf):
                 key: ProdVer(value.split(":")[0], value.split(":")[1]) for key, value in config["test_issues"].items()
             }
         except KeyError:
-            raise NoTestIssues
+            raise NoTestIssuesError
 
         return repos
 
@@ -52,7 +52,7 @@ class Aggregate(BaseConf):
         today = date.today().strftime("%Y%m%d")
 
         if build.startswith(today) and repohash == old_repohash:
-            raise SameBuildExists
+            raise SameBuildExistsError
 
         counter = int(build.split("-")[-1]) + 1 if build.startswith(today) else 1
         return f"{today}-{counter}"
@@ -135,7 +135,7 @@ class Aggregate(BaseConf):
                 full_post["openqa"]["BUILD"] = self.get_buildnr(
                     full_post["openqa"]["REPOHASH"], old_repohash, old_build
                 )
-            except SameBuildExists:
+            except SameBuildExistsError:
                 log.info(
                     "For %s aggreagate on %s there is existing build",
                     self.product,

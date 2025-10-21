@@ -6,7 +6,7 @@ from typing import Union
 
 from ruamel.yaml import YAML  # type: ignore
 
-from ..errors import NoTestIssues
+from ..errors import NoTestIssuesError
 from ..types import Data
 from ..types.aggregate import Aggregate
 from ..types.incidents import Incidents
@@ -69,7 +69,7 @@ def load_metadata(
                                 data[key],
                             )
                         )
-                    except NoTestIssues:
+                    except NoTestIssuesError:
                         log.warning("No 'test_issues' in %s config", data["product"])
                 else:
                     continue

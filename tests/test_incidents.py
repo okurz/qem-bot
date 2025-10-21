@@ -74,7 +74,7 @@ def test_incidents_call_with_flavors():
     assert res == []
 
 
-class MyIncident_0:
+class MyIncident0:
     """The simpler possible implementation of Incident class"""
 
     def __init__(self):
@@ -106,11 +106,11 @@ def test_incidents_call_with_incidents():
         config=test_config,
         extrasettings=None,
     )
-    res = inc(incidents=[MyIncident_0()], token={}, ci_url="", ignore_onetime=False)
+    res = inc(incidents=[MyIncident0()], token={}, ci_url="", ignore_onetime=False)
     assert res == []
 
 
-class MyIncident_1(MyIncident_0):
+class MyIncident1(MyIncident0):
     def __init__(self):
         super().__init__()
         self.channels = []
@@ -127,7 +127,7 @@ def test_incidents_call_with_issues():
         config=test_config,
         extrasettings=None,
     )
-    res = inc(incidents=[MyIncident_1()], token={}, ci_url="", ignore_onetime=False)
+    res = inc(incidents=[MyIncident1()], token={}, ci_url="", ignore_onetime=False)
     assert res == []
 
 
@@ -151,7 +151,7 @@ def request_mock(monkeypatch):
     monkeypatch.setattr("openqabot.types.incidents.requests.get", mock_get)
 
 
-class MyIncident_2(MyIncident_1):
+class MyIncident2(MyIncident1):
     def __init__(self):
         super().__init__()
         self.channels = [Repos("", "", "")]
@@ -173,11 +173,11 @@ def test_incidents_call_with_channels(request_mock):
         config=test_config,
         extrasettings=set(),
     )
-    res = inc(incidents=[MyIncident_2()], token={}, ci_url="", ignore_onetime=False)
+    res = inc(incidents=[MyIncident2()], token={}, ci_url="", ignore_onetime=False)
     assert len(res) == 1
 
 
-class MyIncident_3(MyIncident_2):
+class MyIncident3(MyIncident2):
     def __init__(self):
         super().__init__()
         self.channels = [Repos("", "", "")]
@@ -199,7 +199,7 @@ def test_incidents_call_with_packages(request_mock):
         config=test_config,
         extrasettings=set(),
     )
-    res = inc(incidents=[MyIncident_3()], token={}, ci_url="", ignore_onetime=False)
+    res = inc(incidents=[MyIncident3()], token={}, ci_url="", ignore_onetime=False)
     assert len(res) == 1
 
 
@@ -238,7 +238,7 @@ def test_incidents_call_with_params_expand(request_mock):
         config=test_config,
         extrasettings=set(),
     )
-    res = inc(incidents=[MyIncident_3()], token={}, ci_url="", ignore_onetime=False)
+    res = inc(incidents=[MyIncident3()], token={}, ci_url="", ignore_onetime=False)
     assert len(res) == 1
     assert res[0]["openqa"]["SOMETHING"] == "flavor win"
     assert res[0]["openqa"]["SOMETHING_ELSE"] == "original_else"
@@ -289,7 +289,7 @@ def test_incidents_call_with_params_expand_distri_version(request_mock):
         config=test_config,
         extrasettings=set(),
     )
-    res = inc(incidents=[MyIncident_3()], token={}, ci_url="", ignore_onetime=False)
+    res = inc(incidents=[MyIncident3()], token={}, ci_url="", ignore_onetime=False)
     assert len(res) == 1
     assert res[0]["openqa"]["VERSION"] == "1.2.3"
     assert res[0]["openqa"]["DISTRI"] == "IM_A_DISTRI"
@@ -333,12 +333,12 @@ def test_incidents_call_with_params_expand_isolated(request_mock):
         config=test_config,
         extrasettings=set(),
     )
-    res = inc(incidents=[MyIncident_3()], token={}, ci_url="", ignore_onetime=False)
+    res = inc(incidents=[MyIncident3()], token={}, ci_url="", ignore_onetime=False)
     assert len(res) == 2
     assert res[1]["openqa"]["SOMETHING"] == "original"
 
 
-class MyIncident_4(MyIncident_3):
+class MyIncident4(MyIncident3):
     def __init__(self):
         super().__init__()
         self.embargoed = False
@@ -361,7 +361,7 @@ def test_incidents_call_public_cloud_pint_query(request_mock, monkeypatch):
         config=test_config,
         extrasettings=set(),
     )
-    res = inc(incidents=[MyIncident_4()], token={}, ci_url="", ignore_onetime=False)
+    res = inc(incidents=[MyIncident4()], token={}, ci_url="", ignore_onetime=False)
     assert len(res) == 1
     assert "PUBLIC_CLOUD_IMAGE_ID" in res[0]["openqa"]
 
@@ -377,7 +377,7 @@ def test_making_repo_url():
         config=c,
         extrasettings=set(),
     )
-    inc = MyIncident_0()
+    inc = MyIncident0()
     inc.id = 42
     exp_repo_start = "http://%REPO_MIRROR_HOST%/ibs/SUSE:/Maintenance:/42/"
     repo = incs._make_repo_url(inc, Repos("openSUSE", "15.7", "x86_64"))
@@ -390,7 +390,7 @@ def test_making_repo_url():
     assert repo == exp_repo
 
 
-class MyIncident_5(MyIncident_2):
+class MyIncident5(MyIncident2):
     def revisions_with_fallback(self, arch, version):
         return self.revisions[ArchVer(arch, version)]
 
@@ -410,7 +410,7 @@ def test_gitea_incidents():
     test_config = {"FLAVOR": {flavor: {"archs": archs, "issues": issues}}}
 
     # create a Git-based incident
-    inc = inc = MyIncident_5()
+    inc = inc = MyIncident5()
     inc.id = 42
     repo_hash = 12345
     inc.channels = [Repos(product, version, arch, product_ver) for arch in archs]
@@ -430,7 +430,7 @@ def test_gitea_incidents():
         assert qem["flavor"] == flavor
         assert qem["incident"] == inc.id
         assert qem["version"] == product_ver
-        assert qem["withAggregate"]
+        assert qem["with_aggregate"]
         for s in computed_settings:
             assert s["ARCH"] == arch
             assert s["BASE_TEST_ISSUES"] == f"{inc.id}"

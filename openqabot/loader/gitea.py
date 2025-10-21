@@ -1,9 +1,9 @@
 # Copyright SUSE LLC
 # SPDX-License-Identifier: MIT
-import concurrent.futures as CT
 import json
 import re
 import xml.etree.ElementTree as ET
+from concurrent import futures
 from functools import lru_cache
 from logging import getLogger
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
@@ -515,7 +515,7 @@ def get_incidents_from_open_prs(
     # configure osc to be able to request build info from OBS
     osc.conf.get_config(override_apiurl=OBS_URL)
 
-    with CT.ThreadPoolExecutor() as executor:
+    with futures.ThreadPoolExecutor() as executor:
         future_inc = [
             executor.submit(
                 make_incident_from_pr,
@@ -527,7 +527,7 @@ def get_incidents_from_open_prs(
             )
             for pr in open_prs
         ]
-        for future in CT.as_completed(future_inc):
+        for future in futures.as_completed(future_inc):
             incidents.append(future.result())
 
     incidents = [inc for inc in incidents if inc]

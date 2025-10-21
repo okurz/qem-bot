@@ -14,7 +14,7 @@ import osc.conf
 import osc.core
 from ruamel.yaml import YAML  # type: ignore
 
-from openqabot.openqa import openQAInterface
+from openqabot.openqa import OpenQAInterface
 
 from . import OBS_DOWNLOAD_URL, OBS_GROUP, OBS_URL
 from .errors import PostOpenQAError
@@ -114,7 +114,7 @@ class IncrementApprover:
     def __init__(self, args: Namespace) -> None:
         self.args = args
         self.token = {"Authorization": "Token {}".format(args.token)}
-        self.client = openQAInterface(args)
+        self.client = OpenQAInterface(args)
         self.repo_diff = None
         self.config = IncrementConfig.from_args(args)
         osc.conf.get_config(override_apiurl=OBS_URL)

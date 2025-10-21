@@ -16,7 +16,7 @@ from openqa_client.exceptions import RequestError
 
 from openqabot.dashboard import get_json, patch
 from openqabot.errors import NoResultsError
-from openqabot.openqa import openQAInterface
+from openqabot.openqa import OpenQAInterface
 
 from . import OBS_GROUP, OBS_MAINT_PRJ, OBS_URL, OLDEST_APPROVAL_JOB_DAYS, QEM_DASHBOARD
 from .loader.gitea import make_token_header, review_pr
@@ -84,7 +84,7 @@ class Approver:
             self.single_incident = single_incident
             self.all_incidents = False
         self.token = {"Authorization": "Token {}".format(args.token)}
-        self.client = openQAInterface(args)
+        self.client = OpenQAInterface(args)
 
     def __call__(self) -> int:
         log.info("Start approving incidents in IBS or Gitea")
@@ -121,7 +121,7 @@ class Approver:
         except NoResultsError as e:
             log.info(e)
 
-            if any(i.withAggregate for i in i_jobs):
+            if any(i.with_aggregate for i in i_jobs):
                 log.info("No aggregate test results found for %s", _mi2str(inc))
                 return False
 
@@ -131,7 +131,7 @@ class Approver:
             log.info("%s has at least one failed job in incident tests", _mi2str(inc))
             return False
 
-        if any(i.withAggregate for i in i_jobs):
+        if any(i.with_aggregate for i in i_jobs):
             if not self.get_incident_result(u_jobs, "api/jobs/update/", inc.inc):
                 log.info("%s has at least one failed job in aggregate tests", _mi2str(inc))
                 return False

@@ -8,9 +8,9 @@ from typing import Dict, List, NamedTuple, Sequence
 from openqabot.dashboard import get_json, patch, put
 
 from ..errors import (
-    EmptyChannels,
+    EmptyChannelsError,
     EmptyPackagesError,
-    EmptySettings,
+    EmptySettingsError,
     NoResultsError,
 )
 from ..types import Data
@@ -30,7 +30,7 @@ class IncReq(NamedTuple):
 class JobAggr(NamedTuple):
     id: int
     aggregate: bool
-    withAggregate: bool
+    with_aggregate: bool
 
 
 def get_incidents(token: Dict[str, str]) -> List[Incident]:
@@ -43,7 +43,7 @@ def get_incidents(token: Dict[str, str]) -> List[Incident]:
     for i in incidents:
         try:
             xs.append(Incident(i))
-        except EmptyChannels:
+        except EmptyChannelsError:
             log.info("Project %s has empty channels - check incident in SMELT", i["project"])
         except EmptyPackagesError:
             log.info("Project %s has empty packages - check incident in SMELT", i["project"])
@@ -94,7 +94,7 @@ def get_incident_settings(inc: int, token: Dict[str, str], all_incidents: bool =
             rrid = rrid[-1]
             settings = [s for s in settings if s["settings"].get("RRID", rrid) == rrid]
 
-    return [JobAggr(i["id"], False, i["withAggregate"]) for i in settings]
+    return [JobAggr(i["id"], False, i["with_aggregate"]) for i in settings]
 
 
 def get_incident_settings_data(token: Dict[str, str], number: int) -> Sequence[Data]:
@@ -167,7 +167,7 @@ def get_aggregate_settings_data(token: Dict[str, str], data: Data):
 
     ret = []
     if not settings:
-        raise EmptySettings(f"Product: {data.product} on arch: {data.arch} does not have any settings")
+        raise EmptySettingsError(f"Product: {data.product} on arch: {data.arch} does not have any settings")
 
     log.debug("Getting id for %s", pformat(data))
 

@@ -4,7 +4,7 @@ import re
 from logging import getLogger
 from typing import Dict, List, Optional, Tuple, Union
 
-from ..errors import EmptyChannels, EmptyPackagesError, NoRepoFoundError
+from ..errors import EmptyChannelsError, EmptyPackagesError, NoRepoFoundError
 from ..loader.repohash import get_max_revision
 from . import ArchVer, Repos
 
@@ -59,7 +59,7 @@ class Incident:
         ]
 
         if not self.channels:
-            raise EmptyChannels(self.project)
+            raise EmptyChannelsError(self.project)
 
         self.packages = sorted(incident["packages"], key=len)
         if not self.packages:

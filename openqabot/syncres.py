@@ -7,7 +7,7 @@ from pprint import pformat
 
 from . import ALLOW_DEVELOPMENT_GROUPS
 from .loader.qem import post_job
-from .openqa import openQAInterface
+from .openqa import OpenQAInterface
 from .types import Data
 from .utils import normalize_results
 
@@ -20,7 +20,7 @@ class SyncRes:
     def __init__(self, args: Namespace) -> None:
         self.dry: bool = args.dry
         self.token: dict[str, str] = {"Authorization": f"Token {args.token}"}
-        self.client = openQAInterface(args)
+        self.client = OpenQAInterface(args)
 
     @classmethod
     def normalize_data(cls, data: Data, job):

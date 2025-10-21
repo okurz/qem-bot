@@ -17,7 +17,7 @@ from .types import Data
 log = logging.getLogger("bot.openqa")
 
 
-class openQAInterface:
+class OpenQAInterface:
     def __init__(self, args) -> None:
         self.url: ParseResult = args.openqa_instance
         self.openqa = OpenQA_Client(server=self.url.netloc, scheme=self.url.scheme)

@@ -41,7 +41,7 @@ def mock_openqa_passed(monkeypatch):
         def post_job(self, *args, **kwargs):
             pass
 
-    monkeypatch.setattr(openqabot.openqabot, "openQAInterface", FakeClient)
+    monkeypatch.setattr(openqabot.openqabot, "OpenQAInterface", FakeClient)
 
 
 @pytest.fixture
@@ -53,7 +53,7 @@ def mock_openqa_exception(monkeypatch):
         def post_job(self, *args, **kwargs):
             raise PostOpenQAError
 
-    monkeypatch.setattr(openqabot.openqabot, "openQAInterface", FakeClient)
+    monkeypatch.setattr(openqabot.openqabot, "OpenQAInterface", FakeClient)
 
 
 @pytest.fixture

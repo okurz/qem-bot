@@ -10,7 +10,7 @@ from openqabot.dashboard import put
 from .errors import PostOpenQAError
 from .loader.config import get_onearch, load_metadata
 from .loader.qem import get_incidents
-from .openqa import openQAInterface
+from .openqa import OpenQAInterface
 
 log = getLogger("bot.openqabot")
 
@@ -28,7 +28,7 @@ class OpenQABot:
 
         self.workers = load_metadata(args.configs, args.disable_aggregates, args.disable_incidents, extrasettings)
 
-        self.openqa = openQAInterface(args)
+        self.openqa = OpenQAInterface(args)
         self.ci = environ.get("CI_JOB_URL")
 
     def post_qem(self, data, api) -> None:

@@ -4,7 +4,7 @@ from argparse import Namespace
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from logging import getLogger
 
-from .errors import EmptySettings
+from .errors import EmptySettingsError
 from .loader.config import read_products
 from .loader.qem import get_aggregate_settings_data
 from .syncres import SyncRes
@@ -24,7 +24,7 @@ class AggregateResultsSync(SyncRes):
         for product in self.product:
             try:
                 update_setting += get_aggregate_settings_data(self.token, product)
-            except EmptySettings as e:
+            except EmptySettingsError as e:
                 log.info(e)
                 continue
 

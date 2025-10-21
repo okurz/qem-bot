@@ -126,7 +126,7 @@ def run_approver(
     monkeypatch.setattr(osc.core, "change_review_state", fake_change_review_state)
     monkeypatch.setattr(osc.conf, "get_config", fake_osc_get_config)
     monkeypatch.setattr(
-        openqabot.openqa.openQAInterface,
+        openqabot.openqa.OpenQAInterface,
         "post_job",
         lambda self, data: jobs.append(data),
     )
