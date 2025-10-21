@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 from logging import getLogger
 from pathlib import Path
-from typing import List, Set, Union
+from typing import Union
 
 from ruamel.yaml import YAML  # type: ignore
 
@@ -16,9 +16,9 @@ log = getLogger("bot.loader.config")
 
 
 def load_metadata(
-    path: Path, aggregate: bool, incidents: bool, extrasettings: Set[str]
-) -> List[Union[Aggregate, Incidents]]:
-    ret: List[Union[Aggregate, Incidents]] = []
+    path: Path, aggregate: bool, incidents: bool, extrasettings: set[str]
+) -> list[Union[Aggregate, Incidents]]:
+    ret: list[Union[Aggregate, Incidents]] = []
 
     loader = YAML(typ="safe")
 
@@ -77,7 +77,7 @@ def load_metadata(
     return ret
 
 
-def read_products(path: Path) -> List[Data]:
+def read_products(path: Path) -> list[Data]:
     loader = YAML(typ="safe")
     ret = []
 
@@ -107,7 +107,7 @@ def read_products(path: Path) -> List[Data]:
     return ret
 
 
-def get_onearch(path: Path) -> Set[str]:
+def get_onearch(path: Path) -> set[str]:
     loader = YAML(typ="safe")
 
     try:

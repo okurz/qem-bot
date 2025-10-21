@@ -1,7 +1,7 @@
 # Copyright SUSE LLC
 # SPDX-License-Identifier: MIT
 from logging import getLogger
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Optional, Union
 
 from .. import GITEA, QEM_DASHBOARD, SMELT_URL
 from ..errors import NoRepoFoundError
@@ -23,11 +23,11 @@ class Incidents(BaseConf):
     def __init__(
         self,
         product: str,
-        product_repo: Optional[Union[List[str], str]],
+        product_repo: Optional[Union[list[str], str]],
         product_version: Optional[str],
         settings,
         config,
-        extrasettings: Set[str],
+        extrasettings: set[str],
     ) -> None:
         super().__init__(product, product_repo, product_version, settings, config)
         self.flavors = self.normalize_repos(config["FLAVOR"])
@@ -59,13 +59,13 @@ class Incidents(BaseConf):
         return ret
 
     @staticmethod
-    def _repo_osuse(chan: Repos) -> Union[Tuple[str, str, str], Tuple[str, str]]:
+    def _repo_osuse(chan: Repos) -> Union[tuple[str, str, str], tuple[str, str]]:
         if chan.product == "openSUSE-SLE":
             return chan.product, chan.version
         return chan.product, chan.version, chan.arch
 
     @staticmethod
-    def _is_scheduled_job(token: Dict[str, str], inc: Incident, arch: str, ver: str, flavor: str) -> bool:
+    def _is_scheduled_job(token: dict[str, str], inc: Incident, arch: str, ver: str, flavor: str) -> bool:
         jobs = {}
         try:
             jobs = requests.get(
@@ -108,10 +108,10 @@ class Incidents(BaseConf):
         arch,
         flavor,
         data,
-        token: Dict[str, str],
+        token: dict[str, str],
         ci_url: Optional[str],
         ignore_onetime: bool,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if inc.type == "git" and not inc.ongoing:
             log.info(
                 "Scheduling no jobs for incident %s (arch '%s', flavor '%s') as the PR is either closed, approved or review is no longer requested.",
@@ -126,7 +126,7 @@ class Incidents(BaseConf):
                 inc.id,
             )
             return None
-        full_post: Dict[str, Any] = {}
+        full_post: dict[str, Any] = {}
         full_post["api"] = "api/incident_settings"
         full_post["qem"] = {}
         full_post["openqa"] = {}
@@ -321,11 +321,11 @@ class Incidents(BaseConf):
 
     def __call__(
         self,
-        incidents: List[Incident],
-        token: Dict[str, str],
+        incidents: list[Incident],
+        token: dict[str, str],
         ci_url: Optional[str],
         ignore_onetime: bool,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         ret = []
 
         for flavor, data in self.flavors.items():

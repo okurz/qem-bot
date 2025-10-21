@@ -23,7 +23,7 @@ def _comment_as_dict(comment_element):
     return comment
 
 
-class CommentAPI(object):
+class CommentAPI:
     COMMENT_MARKER_REGEX = re.compile(r"<!-- (?P<bot>[^ ]+)(?P<info>(?: [^= ]+=[^ ]+)*) -->")
 
     def __init__(self, apiurl):

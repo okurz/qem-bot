@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import date
 from itertools import chain
 from logging import getLogger
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from .. import DOWNLOAD_BASE, QEM_DASHBOARD, SMELT_URL
 from ..dashboard import get_json
@@ -22,7 +22,7 @@ class Aggregate(BaseConf):
     def __init__(
         self,
         product: str,
-        product_repo: Optional[Union[List[str], str]],
+        product_repo: Optional[Union[list[str], str]],
         product_version: Optional[str],
         settings,
         config,
@@ -59,15 +59,15 @@ class Aggregate(BaseConf):
 
     def __call__(
         self,
-        incidents: List[Incident],
-        token: Dict[str, str],
+        incidents: list[Incident],
+        token: dict[str, str],
         ci_url: Optional[str],
         ignore_onetime: bool = False,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         ret = []
 
         for arch in self.archs:
-            full_post: Dict["str", Any] = {}
+            full_post: dict[str, Any] = {}
             full_post["openqa"] = {}
             full_post["qem"] = {}
             full_post["qem"]["incidents"] = []

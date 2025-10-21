@@ -1,7 +1,7 @@
 # Copyright SUSE LLC
 # SPDX-License-Identifier: MIT
 from abc import ABCMeta, abstractmethod, abstractstaticmethod
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from .incident import Incident
 
@@ -10,7 +10,7 @@ class BaseConf(metaclass=ABCMeta):
     def __init__(
         self,
         product: str,
-        product_repo: Optional[Union[List[str], str]],
+        product_repo: Optional[Union[list[str], str]],
         product_version: Optional[str],
         settings,
         config,  # pylint: disable=unused-argument
@@ -23,11 +23,11 @@ class BaseConf(metaclass=ABCMeta):
     @abstractmethod
     def __call__(
         self,
-        incidents: List[Incident],
-        token: Dict[str, str],
+        incidents: list[Incident],
+        token: dict[str, str],
         ci_url: Optional[str],
         ignore_onetime: bool,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         pass
 
     @abstractstaticmethod

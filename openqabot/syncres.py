@@ -4,7 +4,6 @@
 from argparse import Namespace
 from logging import getLogger
 from pprint import pformat
-from typing import Dict
 
 from . import ALLOW_DEVELOPMENT_GROUPS
 from .loader.qem import post_job
@@ -20,7 +19,7 @@ class SyncRes:
 
     def __init__(self, args: Namespace) -> None:
         self.dry: bool = args.dry
-        self.token: Dict[str, str] = {"Authorization": f"Token {args.token}"}
+        self.token: dict[str, str] = {"Authorization": f"Token {args.token}"}
         self.client = openQAInterface(args)
 
     @classmethod

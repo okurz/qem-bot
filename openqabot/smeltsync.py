@@ -4,7 +4,7 @@ from argparse import Namespace
 from logging import getLogger
 from operator import itemgetter
 from pprint import pformat
-from typing import Any, Dict, List
+from typing import Any
 
 from .loader.qem import update_incidents
 from .loader.smelt import get_active_incidents, get_incidents
@@ -15,7 +15,7 @@ log = getLogger("bot.smeltsync")
 class SMELTSync:
     def __init__(self, args: Namespace) -> None:
         self.dry: bool = args.dry
-        self.token: Dict[str, str] = {"Authorization": "Token " + args.token}
+        self.token: dict[str, str] = {"Authorization": "Token " + args.token}
         self.incidents = get_incidents(get_active_incidents())
         self.retry = args.retry
 
@@ -101,5 +101,5 @@ class SMELTSync:
         return incident
 
     @classmethod
-    def _create_list(cls, incidents: List[Any]) -> List[Dict[str, Any]]:
+    def _create_list(cls, incidents: list[Any]) -> list[dict[str, Any]]:
         return [cls._create_record(inc) for inc in incidents]

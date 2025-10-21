@@ -22,7 +22,7 @@ log = getLogger("bot.commenter")
 class Commenter:
     def __init__(self, args: Namespace) -> None:
         self.dry = args.dry
-        self.token = {"Authorization": "Token {}".format(args.token)}
+        self.token = {"Authorization": f"Token {args.token}"}
         self.client = openQAInterface(args)
         self.incidents = get_incidents(self.token)
         osc.conf.get_config(override_apiurl=OBS_URL)
@@ -75,7 +75,7 @@ class Commenter:
         info = {}
         info["state"] = state
         for key in inc.revisions.keys():
-            info["revision_%s_%s" % (key.version, key.arch)] = inc.revisions[key]
+            info[f"revision_{key.version}_{key.arch}"] = inc.revisions[key]
 
         msg = self.commentapi.add_marker(msg, bot_name, info)
         msg = self.commentapi.truncate(msg.strip())
@@ -127,7 +127,7 @@ class Commenter:
                     },
                 )
                 groups[gl] = {
-                    "title": "__Group [{!s}]({!s})__\n".format(gl, groupurl),
+                    "title": f"__Group [{gl!s}]({groupurl!s})__\n",
                     "passed": 0,
                     "unfinished": 0,
                     "failed": [],

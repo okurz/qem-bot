@@ -74,7 +74,7 @@ def test_incidents_call_with_flavors():
     assert res == []
 
 
-class MyIncident_0(object):
+class MyIncident_0:
     """The simpler possible implementation of Incident class"""
 
     def __init__(self):
@@ -207,7 +207,7 @@ def test_incidents_call_with_params_expand(request_mock):
     """Product configuration has 4 settings.
     Incident configuration has only 1 flavor.
     The only flavor is using params_expand.
-    Set of setting in product and flavor:
+    set of setting in product and flavor:
     - match on SOMETHING: flavor value has to win
     - flavor set extend product set SOMETHING_NEW:
     - one setting is only at product level SOMETHING_ELSE
@@ -433,8 +433,8 @@ def test_gitea_incidents():
         assert qem["withAggregate"]
         for s in computed_settings:
             assert s["ARCH"] == arch
-            assert s["BASE_TEST_ISSUES"] == "%i" % inc.id
-            assert s["BUILD"] == ":%i:None" % inc.id
+            assert s["BASE_TEST_ISSUES"] == f"{inc.id}"
+            assert s["BUILD"] == f":{inc.id}:None"
             assert s["DISTRI"] == settings["DISTRI"]
             assert s["FLAVOR"] == flavor
             assert s["INCIDENT_ID"] == inc.id
