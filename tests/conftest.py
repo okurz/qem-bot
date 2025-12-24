@@ -140,6 +140,11 @@ def _mock_load_dotenv(mocker: MockerFixture) -> None:
     mocker.patch("openqabot.main.load_dotenv")
 
 
+@pytest.fixture(autouse=True)
+def set_retries_to_zero(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("QEM_BOT_RETRIES", "0")
+
+
 @pytest.fixture
 def fake_qem(request: pytest.FixtureRequest, mocker: MockerFixture) -> None:
     request_param = request.node.get_closest_marker("qem_behavior").args[0]
