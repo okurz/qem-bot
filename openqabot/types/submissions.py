@@ -262,7 +262,9 @@ class Submissions(BaseConf):
 
         all_repos = {c for matched in matches.values() for c in matched}
         repos = {c for c in all_repos if c.product_version == version} or all_repos
+        assert repos, "repos must not be empty after version-filtering"
         settings["INCIDENT_REPO"] = ",".join(sorted(self.make_repo_url(ctx.sub, chan) for chan in repos))
+        assert settings["INCIDENT_REPO"], "INCIDENT_REPO must not be empty after URL-creation"
 
         if prio := self.get_priority(ctx):
             settings["_PRIORITY"] = prio
