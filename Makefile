@@ -139,3 +139,26 @@ setup-hooks: ## Install pre-commit git hooks
 .PHONY: update-readme
 update-readme: ## Update CLI usage section in Readme.md
 	$(PYTHON_RUN) python3 scripts/update_readme.py
+
+DASHBOARD_DIR ?= ../qem-dashboard
+DASHBOARD_URL ?= http://localhost:3000
+
+.PHONY: integration-test-setup
+integration-test-setup: ## Setup qem-dashboard for integration testing
+	@if [ ! -d "$(DASHBOARD_DIR)" ]; then echo "Error: $(DASHBOARD_DIR) not found"; exit 1; fi
+	cd $(DASHBOARD_DIR) && make install-deps-cpanm install-deps-js build
+	cd $(DASHBOARD_DIR) && TEST_ONLINE="postgresql://postgres:postgres@localhost:5432/postgres" ./script/dashboard deploy
+
+.PHONY: integration-test-run
+integration-test-run: ## Run integration tests against qem-dashboard
+	@echo "Starting Dashboard..."
+	cd $(DASHBOARD_DIR) && MOJO_MODE=testing TEST_ONLINE="postgresql://postgres:postgres@localhost:5432/postgres" ./script/dashboard daemon -l $(DASHBOARD_URL) > dashboard.log 2>&1 & echo $$! > dashboard.pid
+	@echo "Waiting for dashboard to be ready..."
+	@sleep 5
+	@echo "Running integration tests..."
+	QEM_DASHBOARD=$(DASHBOARD_URL) $(UNSHARE) python3 -m pytest -m integration || (kill `cat $(DASHBOARD_DIR)/dashboard.pid`; exit 1)
+	kill `cat $(DASHBOARD_DIR)/dashboard.pid`
+	rm $(DASHBOARD_DIR)/dashboard.pid
+
+.PHONY: integration-test
+integration-test: integration-test-setup integration-test-run ## Run full integration test suite

@@ -202,6 +202,7 @@ def fake_qem(request: pytest.FixtureRequest, mocker: MockerFixture) -> None:
     Approver.is_job_marked_acceptable_for_submission.cache_clear()
     Approver.validate_job_qam.cache_clear()
     Approver.was_ok_before.cache_clear()
+    Approver.job_contains_submission.cache_clear()
     Approver.get_jobs.cache_clear()
 
 

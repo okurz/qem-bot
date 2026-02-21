@@ -1,0 +1,4 @@
+product: testproduct
+settings:
+  DISTRI: opensuse
+  VERSION: '15.6'

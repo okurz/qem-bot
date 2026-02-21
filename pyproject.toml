@@ -57,6 +57,7 @@ QEM_DASHBOARD_URL = { unset = true }
 [tool.coverage.run]
 source = ["openqabot"]
 branch = true
+source = ["openqabot"]
 
 [tool.coverage.report]
 fail_under = 100
@@ -67,7 +68,10 @@ skip_covered = true
 addopts = "-p no:anyio -p no:doctest -p no:pastebin -p no:nose"
 testpaths = ["tests"]
 python_files = "test_*.py"
-markers = ["qem_behavior(mode): configure the fake_qem fixture behavior"]
+markers = [
+    "qem_behavior(mode): configure the fake_qem fixture behavior",
+    "integration: integration tests",
+]
 
 [tool.setuptools]
 include-package-data = true
