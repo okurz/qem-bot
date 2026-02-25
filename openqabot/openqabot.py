@@ -24,25 +24,10 @@ class OpenQABot:
 
     def __init__(self, args: Namespace) -> None:
         """Initialize the OpenQABot class."""
-        log.info("Starting bot schedule")
+        self.args = args
         self.dry = args.dry
         self.ignore_onetime = args.ignore_onetime
         self.submission_arg = args.submission if hasattr(args, "submission") else None
-        self.submissions = get_submissions(self.submission_arg)
-        log.info("Loaded %s submissions from QEM Dashboard", len(self.submissions))
-
-        for sub in self.submissions:
-            sub.log_skipped()
-
-        extrasettings = get_onearch(args.singlearch)
-
-        self.workers = load_metadata(
-            args.configs,
-            aggregate=args.disable_aggregates,
-            submissions=args.disable_submissions,
-            extrasettings=extrasettings,
-        )
-
         self.openqa = OpenQAInterface()
         self.ci = environ.get("CI_JOB_URL")
 
@@ -66,8 +51,24 @@ class OpenQABot:
 
     def __call__(self) -> int:
         """Run the bot schedule."""
+        log.info("Starting bot schedule")
+        submissions = get_submissions(self.submission_arg)
+        log.info("Loaded %s submissions from QEM Dashboard", len(submissions))
+
+        for sub in submissions:
+            sub.log_skipped()
+
+        extrasettings = get_onearch(self.args.singlearch)
+
+        workers = load_metadata(
+            self.args.configs,
+            aggregate=self.args.disable_aggregates,
+            submissions=self.args.disable_submissions,
+            extrasettings=extrasettings,
+        )
+
         log.info("Entering bot main loop")
-        post = [p for w in self.workers for p in w(self.submissions, self.ci, ignore_onetime=self.ignore_onetime)]
+        post = [p for w in workers for p in w(submissions, self.ci, ignore_onetime=self.ignore_onetime)]
 
         log.info("Triggering %d products in openQA", len(post))
 

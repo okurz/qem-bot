@@ -25,14 +25,14 @@ class SMELTSync:
     def __init__(self, args: Namespace) -> None:
         """Initialize the SMELTSync class."""
         self.dry: bool = args.dry
-        self.submissions = get_submissions(get_active_submission_ids())
         self.retry = args.retry
 
     def __call__(self) -> int:
         """Run the synchronization process."""
         log.info("Syncing SMELT incidents to QEM Dashboard")
+        submissions = get_submissions(get_active_submission_ids())
 
-        data = self.create_list(self.submissions)
+        data = self.create_list(submissions)
         log.info("Updating %d submissions on QEM Dashboard", len(data))
         log.debug("Data: %s", pformat(data))
 

@@ -22,12 +22,12 @@ class SubResultsSync(SyncRes):
     def __init__(self, args: Namespace) -> None:
         """Initialize the SubResultsSync class."""
         super().__init__(args)
-        self.active = get_active_submissions()
 
     def __call__(self) -> int:
         """Run the synchronization process."""
-        log.info("Synchronizing results for %s active submissions...", len(self.active))
-        submissions = list(chain.from_iterable(get_submission_settings_data(sub) for sub in self.active))
+        active = get_active_submissions()
+        log.info("Synchronizing results for %s active submissions...", len(active))
+        submissions = list(chain.from_iterable(get_submission_settings_data(sub) for sub in active))
         full = {}
         with futures.ThreadPoolExecutor(max_workers=config.settings.max_workers) as executor:
             future_result = {executor.submit(self.client.get_jobs, f): f for f in submissions}

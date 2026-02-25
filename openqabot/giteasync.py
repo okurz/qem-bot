@@ -21,6 +21,7 @@ class GiteaSync:
 
     def __init__(self, args: Namespace) -> None:
         """Initialize the GiteaSync class."""
+        self.args = args
         self.dry: bool = args.dry
         self.fake_data: bool = args.fake_data
         self.gitea_token: dict[str, str] = make_token_header(args.gitea_token)
@@ -69,7 +70,6 @@ class GiteaSync:
             only_requested_prs=not self.consider_unrequested_prs,
             dry=self.fake_data,
         )
-
         log.debug("Data for %d submissions: %s", len(submissions), pformat(submissions))
         if self.dry:
             log.info("Dry run: Would update QEM Dashboard data for %d submissions", len(submissions))

@@ -72,11 +72,22 @@ class IncrementApprover:
         self.requests_to_approve = {}
         # safeguard us from using same job ID for 2 requests
         self.unique_jobid_request_pair = {}
-        self.config = IncrementConfig.from_args(args)
+        self._config = None
         self.comment = getattr(args, "comment", False)
 
         self.commenter = Commenter(args, submissions=[])
-        osc.conf.get_config(override_apiurl=config.settings.obs_url)
+
+    @property
+    def config(self) -> list[IncrementConfig]:
+        """Lazy loader for increment configurations."""
+        if self._config is None:
+            self._config = IncrementConfig.from_args(self.args)
+        return self._config
+
+    @config.setter
+    def config(self, value: list[IncrementConfig]) -> None:
+        """Setter for increment configurations."""
+        self._config = value
 
     def check_unique_jobid_request_pair(self, jobids: list[int], request: osc.core.Request) -> None:
         """Check if certain openQA job was already used to verify certain request ID.
@@ -543,6 +554,7 @@ class IncrementApprover:
 
     def __call__(self) -> int:
         """Run the increment approval process."""
+        osc.conf.get_config(override_apiurl=config.settings.obs_url)
         error_count = 0
         # --request-id is an explicit, ad-hoc operator override: the caller is expected to
         # know which OBS instance hosts that request, so per-config obs_url is not applied here.

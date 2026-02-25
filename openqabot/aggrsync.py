@@ -23,12 +23,13 @@ class AggregateResultsSync(SyncRes):
     def __init__(self, args: Namespace) -> None:
         """Initialize the AggregateResultsSync class."""
         super().__init__(args)
-        self.product = read_products(args.configs)
+        self.args = args
 
     def __call__(self) -> int:
         """Run the synchronization process."""
-        log.info("Synchronizing results for %s products...", len(self.product))
-        update_setting = list(chain.from_iterable(get_aggregate_settings_data(product) for product in self.product))
+        product = read_products(self.args.configs)
+        log.info("Synchronizing results for %s products...", len(product))
+        update_setting = list(chain.from_iterable(get_aggregate_settings_data(p) for p in product))
 
         job_results = {}
         with ThreadPoolExecutor(max_workers=config.settings.max_workers) as executor:
