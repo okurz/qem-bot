@@ -25,11 +25,18 @@ ACTIVE_FST = '{ incidents(status_Name_Iexact:"active", first: 100 ) { pageInfo \
 ACTIVE_NEXT = '{ incidents(status_Name_Iexact:"active", first: 100, \
 after: "%(cursor)s" ) { pageInfo { hasNextPage endCursor} edges { node { incidentId}}}}'
 
-INCIDENT = "{incidents(incidentId: %(incident)s) { edges { node {emu project \
-repositories { edges { node { name } } } requestSet(kind: RR) { edges { node \
+_INCIDENT_QUERY = "{incidents(incidentId: %%(incident)s) { edges { node {emu project \
+repositories { edges { node { name } } } requestSet(kind: %s) { edges { node \
 { requestId status { name } reviewSet { edges { node { assignedByGroup { name } \
 status { name } } } } } } } packages { edges { node { name } } } \
     crd priority } } } }"
+
+INCIDENT_ENUM = _INCIDENT_QUERY % "RR"
+INCIDENT_STRING = _INCIDENT_QUERY % '"RR"'
+
+# Global variable to cache the detected kind format
+KIND_FORMAT_ENUM = True
+
 
 ACTIVE_INC_SCHEMA = {
     "type": "object",
@@ -184,10 +191,21 @@ def get_active_submission_ids() -> set[int]:
 
 def get_submission_from_smelt(incident: int) -> dict[str, Any] | None:
     """Fetch detailed information for a single submission from SMELT."""
-    query = INCIDENT % {"incident": incident}
+    global KIND_FORMAT_ENUM  # noqa: PLW0603
+
+    query = (INCIDENT_ENUM if KIND_FORMAT_ENUM else INCIDENT_STRING) % {"incident": incident}
 
     log.info("Fetching details for SMELT incident smelt:%s", incident)
     inc_result = get_json(query)
+
+    # Check for GraphQL errors related to kind argument type
+    if "errors" in inc_result:
+        # If we failed with one format, try the other one once
+        KIND_FORMAT_ENUM = not KIND_FORMAT_ENUM
+        query = (INCIDENT_ENUM if KIND_FORMAT_ENUM else INCIDENT_STRING) % {"incident": incident}
+        log.info("Retrying SMELT incident smelt:%s with different kind format", incident)
+        inc_result = get_json(query)
+
     try:
         validate(instance=inc_result, schema=INCIDENT_SCHEMA)
         inc_result = cast("dict[str, Any]", walk(inc_result["data"]["incidents"]["edges"][0]["node"]))
