@@ -117,9 +117,11 @@ class OpenQAInterface:
     def get_single_job(self, job_id: int) -> dict[str, Any] | None:
         """Fetch details for a single job."""
         try:
-            return self.openqa.openqa_request("GET", f"jobs/{job_id}")["job"]
-        except RequestError:
-            log.exception("openQA API error when fetching job %s", job_id)
+            return self.openqa.openqa_request("GET", f"jobs/{job_id}", retries=self.retries)["job"]
+        except RequestError as e:
+            (_, _, status_code, *_) = e.args
+            if status_code != HTTPStatus.NOT_FOUND:
+                log.exception("openQA API error when fetching job %s", job_id)
         return None
 
     def is_in_devel_group(self, job: dict[str, Any]) -> bool:

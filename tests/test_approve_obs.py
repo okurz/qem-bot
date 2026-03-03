@@ -141,3 +141,91 @@ def test_osc_all_pass(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -
     ]
     assert_log_messages(caplog.messages, expected)
     mock_review_pr.assert_called_once_with(mocker.ANY, mocker.ANY, 5, mocker.ANY, mocker.ANY)
+
+
+@pytest.fixture
+def f_args() -> Any:
+    return args
+
+
+def setup_common_mocks() -> None:
+    # Mock submissions
+    responses.add(
+        responses.GET,
+        f"{settings.qem_dashboard_url}api/incidents",
+        json=[{"number": 100, "rr_number": 1000, "inReviewQAM": True, "type": None, "url": None, "scm_info": None}],
+    )
+
+    # Mock incident settings
+    responses.add(
+        responses.GET,
+        f"{settings.qem_dashboard_url}api/incident_settings/100",
+        json=[{"id": 1, "withAggregate": False, "settings": {}}],
+    )
+
+    # Mock update settings
+    responses.add(
+        responses.GET,
+        f"{settings.qem_dashboard_url}api/update_settings/100",
+        json=[],
+    )
+
+
+@responses.activate
+@pytest.mark.parametrize(
+    ("openqa_job_response", "log_msg"),
+    [
+        (
+            {"status": 404, "json": {"error": "Not found"}},
+            "Job 123 not found on openQA, marking as obsolete on dashboard",
+        ),
+        (
+            {"json": {"job": {"id": 123, "result": "failed", "clone_id": 124}}},
+            "Job 123 has been cloned to 124, marking as obsolete",
+        ),
+        (
+            {"json": {"job": {"id": 123, "result": "passed"}}},
+            "Job 123 status changed from failed to passed, updating dashboard",
+        ),
+    ],
+)
+def test_approve_with_stale_job(
+    f_args: Any,
+    caplog: pytest.LogCaptureFixture,
+    mocker: MockerFixture,
+    openqa_job_response: dict,
+    log_msg: str,
+) -> None:
+    caplog.set_level(logging.DEBUG, logger="bot.approver")
+    caplog.set_level(logging.DEBUG, logger="bot.openqa")
+    setup_common_mocks()
+
+    # Mock jobs in dashboard - one failed job
+    responses.add(
+        responses.GET, f"{settings.qem_dashboard_url}api/jobs/incident/1", json=[{"job_id": 123, "status": "failed"}]
+    )
+
+    # Mock openQA job lookup
+    responses.add(responses.GET, "http://instance.qa/api/v1/jobs/123", **openqa_job_response)
+
+    # Mock openQA job comments - return 404 for missing job, empty list otherwise
+    status = openqa_job_response.get("status", 200)
+    responses.add(
+        responses.GET,
+        "http://instance.qa/api/v1/jobs/123/comments",
+        status=status,
+        json=[] if status == 200 else {"error": "Not found"},
+    )
+
+    # Mock dashboard PATCH
+    responses.add(responses.PATCH, f"{settings.qem_dashboard_url}api/jobs/123", status=200)
+
+    # Mock osc approval
+    mocker.patch("osc.conf.get_config")
+    mocker.patch("osc.core.change_review_state")
+
+    approver = Approver(f_args)
+    assert approver() == 0
+
+    assert log_msg in caplog.text
+    assert "Approving SUSE:Maintenance:100:1000" in caplog.text

@@ -32,8 +32,10 @@ from .loader.qem import (
     get_single_submission,
     get_submission_settings,
     get_submissions_approver,
+    update_job,
 )
 from .utc import UTC
+from .utils import normalize_results
 
 if TYPE_CHECKING:
     from argparse import Namespace
@@ -195,6 +197,33 @@ class Approver:
                 e,
             )
 
+    def _mark_obsolete(self, job_result: dict, log_msg: str) -> None:
+        """Mark a job as obsolete locally and in the dashboard."""
+        job_id = job_result["job_id"]
+        log.info(log_msg, job_id)
+        job_result["obsolete"] = True
+        update_job(self.token, job_id, {"obsolete": True})
+
+    def _refresh_job_result(self, job_result: dict) -> None:
+        """Refresh job result status from openQA and update dashboard if necessary."""
+        job_id = job_result["job_id"]
+        job_info = self.client.get_single_job(job_id)
+        if not job_info:
+            self._mark_obsolete(job_result, "Job %s not found on openQA, marking as obsolete on dashboard")
+            return
+        new_status = normalize_results(job_info.get("result", ""))
+        if new_status != job_result["status"]:
+            log.info(
+                "Job %s status changed from %s to %s, updating dashboard",
+                job_id,
+                job_result["status"],
+                new_status,
+            )
+            job_result["status"] = new_status
+            update_job(self.token, job_id, {"status": new_status})
+        if clone_id := job_info.get("clone_id"):
+            self._mark_obsolete(job_result, f"Job %s has been cloned to {clone_id}, marking as obsolete")
+
     @lru_cache(maxsize=512)  # noqa: B019
     def is_job_marked_acceptable_for_submission(self, job_id: int, sub: int) -> bool:
         """Check if a job is marked as acceptable for a submission."""
@@ -315,10 +344,16 @@ class Approver:
         return job_result["status"] == "passed"
 
     def mark_jobs_as_acceptable_for_submission(self, job_results: list[dict], sub: int) -> None:
-        """Mark not-ok jobs as acceptable if they have corresponding openQA comments."""
+        """Refresh non-passing jobs and check for manual overrides."""
         for job_result in job_results:
             if self.is_job_passing(job_result):
                 continue
+
+            self._refresh_job_result(job_result)
+
+            if job_result.get("obsolete"):
+                continue
+
             job_id = job_result["job_id"]
             try:
                 if self.is_job_marked_acceptable_for_submission(job_id, sub):
@@ -330,7 +365,7 @@ class Approver:
 
     def is_job_acceptable(self, sub: int, api: str, job_result: dict, submission_type: str | None = None) -> bool:
         """Determine if a job result is acceptable for approval."""
-        if self.is_job_passing(job_result):
+        if self.is_job_passing(job_result) or job_result.get("obsolete"):
             return True
         job_id = job_result["job_id"]
         url = f"{self.client.url.geturl()}/t{job_id}"

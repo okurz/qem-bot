@@ -183,6 +183,10 @@ def fake_qem(request: pytest.FixtureRequest, mocker: MockerFixture) -> None:
     mocker.patch("openqabot.approver.get_submissions_approver", side_effect=f_sub_approver)
     mocker.patch("openqabot.approver.get_submission_settings", side_effect=f_sub_settins)
     mocker.patch("openqabot.approver.get_aggregate_settings", side_effect=f_aggr_settings)
+    mocker.patch(
+        "openqabot.openqa.OpenQAInterface.get_single_job",
+        side_effect=lambda job_id: {"id": job_id, "result": "failed"},
+    )
 
     OpenQAInterface.get_job_comments.cache_clear()
     OpenQAInterface.get_single_job.cache_clear()
