@@ -8,6 +8,7 @@ Most of these constants can be overridden by environment variables.
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -71,7 +72,9 @@ class Settings(BaseSettings):
     url_timeout: int = 60
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        # Skip loading local .env file when running tests to ensure consistency
+        # between local development environment and CI/CD pipelines.
+        env_file=None if any("pytest" in arg for arg in sys.argv) else ".env",
         env_file_encoding="utf-8",
         extra="ignore",
         populate_by_name=True,
