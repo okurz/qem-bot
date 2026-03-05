@@ -173,7 +173,7 @@ def _parse_product(path: Path, data: dict) -> Iterator[Data]:
         version = settings["VERSION"]
         product = data["product"]
     except KeyError as e:
-        log.info("Configuration skipped: File %s missing required setting %s", path, e)
+        log.debug("Configuration skipped: File %s missing required setting %s", path, e)
         return
 
     yield from (Data(0, "aggregate", 0, flavor, arch, distri, version, "", product) for arch in archs)
