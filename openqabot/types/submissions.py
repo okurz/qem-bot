@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+from collections import defaultdict
 from logging import getLogger
 from typing import TYPE_CHECKING, Any, NamedTuple
 
@@ -176,7 +177,6 @@ class Submissions(BaseConf):
         if not cfg.ignore_onetime and self.is_scheduled_job(
             cfg.token, ctx, self.settings["VERSION"], submission_type=ctx.sub.type
         ):
-            log.info("Submission %s already scheduled for %s on %s", ctx.sub, ctx.flavor, ctx.arch)
             return True
 
         return self._is_kernel_missing_repo(ctx.sub, ctx.flavor, matches)
@@ -334,10 +334,51 @@ class Submissions(BaseConf):
             s for s in submissions if s.compute_revisions_for_product_repo(self.product_repo, self.product_version)
         ]
 
-        return [
-            r
-            for flavor, data in self.flavors.items()
-            for arch in data["archs"]
-            for sub in active
-            if (r := self.process_sub_context(SubContext(sub, arch, flavor, data), cfg))
-        ]
+        scheduled_summary = defaultdict(list)
+        results = []
+
+        for flavor, data in self.flavors.items():
+            for arch in data["archs"]:
+                for sub in active:
+                    ctx = SubContext(sub, arch, flavor, data)
+
+                    # Instead of duplicating should_skip logic, we intercept the scheduled check here
+                    # so we can group it. We must mimic the early parts of should_skip.
+                    matches = {
+                        issue: matched
+                        for issue, channel in data.get("issues", {}).items()
+                        if (matched := self.get_matching_channels(sub, channel, arch))
+                    }
+
+                    # if pkg_mismatch or not matches... it would be skipped anyway, let should_skip handle it normally.
+                    # We just pre-check the schedule status if we are not ignoring onetime, to group the log messages.
+                    if not cfg.ignore_onetime:
+                        pkg_mismatch = (
+                            data.get("packages") is not None and not sub.contains_package(data["packages"])
+                        ) or (
+                            data.get("excluded_packages") is not None
+                            and sub.contains_package(data["excluded_packages"])
+                        )
+                        skip_early = (
+                            (self.filter_embargoed(flavor) and sub.embargoed)
+                            or sub.staging
+                            or pkg_mismatch
+                            or not matches
+                            or ("required_issues" in data and set(matches).isdisjoint(data["required_issues"]))
+                        )
+
+                        if not skip_early and self.is_scheduled_job(
+                            cfg.token, ctx, self.settings["VERSION"], submission_type=sub.type
+                        ):
+                            scheduled_summary[sub].append(f"{flavor} on {arch}")
+                            # To avoid changing should_skip signature, we just let should_skip return True silently
+                            # We'll update should_skip to NOT log the schedule message.
+
+                    r = self.process_sub_context(ctx, cfg)
+                    if r:
+                        results.append(r)
+
+        for sub, combos in scheduled_summary.items():
+            log.info("Submission %s already scheduled for %s", sub, ", ".join(combos))
+
+        return results
