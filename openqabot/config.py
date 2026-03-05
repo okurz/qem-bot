@@ -8,6 +8,8 @@ Most of these constants can be overridden by environment variables.
 
 from __future__ import annotations
 
+import os
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +20,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 def get_default_obs_url() -> str:
     """Get the default OBS URL from osc configuration."""
+    if os.environ.get("OPENQABOT_TESTING") == "1":
+        return "https://api.suse.de"
     try:
         osc.conf.get_config()
         if apiurl := osc.conf.config.get("apiurl"):
@@ -71,7 +75,6 @@ class Settings(BaseSettings):
     url_timeout: int = 60
 
     model_config = SettingsConfigDict(
-        env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
         populate_by_name=True,
@@ -108,11 +111,17 @@ class Settings(BaseSettings):
         return set(self.obs_products.split(","))
 
 
-settings = Settings()
+@lru_cache(maxsize=1)
+def get_settings() -> Settings:
+    """Singleton getter for application settings."""
+    return Settings()
 
 
 def __getattr__(name: str) -> Any:  # noqa: ANN401
     """Map legacy module-level constants to settings object attributes."""
+    if name == "settings":
+        return get_settings()
+
     mapping = {
         "QEM_DASHBOARD": "qem_dashboard_url",
         "DEFAULT_SUBMISSION_TYPE": "default_submission_type",
@@ -140,7 +149,7 @@ def __getattr__(name: str) -> Any:  # noqa: ANN401
         "GIT_OBS_STAGING_BOT": "git_obs_staging_bot_user",
     }
     if name in mapping:
-        return getattr(settings, mapping[name])
+        return getattr(get_settings(), mapping[name])
     if name == "BUILD_REGEX":
         return (
             r"(?P<product>.*)-(?P<version>[^\-]*?)-(?P<flavor>\D+[^\-]*?)-"

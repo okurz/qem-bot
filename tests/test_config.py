@@ -3,6 +3,7 @@
 """Test configuration."""
 
 import ast
+import os
 from pathlib import Path
 from unittest.mock import patch
 
@@ -46,19 +47,30 @@ def test_git_review_bot_user_empty() -> None:
 
 def test_get_default_obs_url_from_osc() -> None:
     """Test that get_default_obs_url derives the URL from osc.conf."""
-    with patch("osc.conf.get_config"), patch("osc.conf.config", {"apiurl": "https://api.example.com"}):
+    with (
+        patch.dict(os.environ, {"OPENQABOT_TESTING": ""}),
+        patch("osc.conf.get_config"),
+        patch("osc.conf.config", {"apiurl": "https://api.example.com"}),
+    ):
         assert get_default_obs_url() == "https://api.example.com"
 
 
 def test_get_default_obs_url_no_apiurl() -> None:
     """Test that get_default_obs_url falls back to default if apiurl is missing in osc.conf."""
-    with patch("osc.conf.get_config"), patch("osc.conf.config", {}):
+    with (
+        patch.dict(os.environ, {"OPENQABOT_TESTING": ""}),
+        patch("osc.conf.get_config"),
+        patch("osc.conf.config", {}),
+    ):
         assert get_default_obs_url() == "https://api.suse.de"
 
 
 def test_get_default_obs_url_fallback() -> None:
     """Test that get_default_obs_url falls back to default if osc.conf fails."""
-    with patch("osc.conf.get_config", side_effect=Exception("osc not configured")):
+    with (
+        patch.dict(os.environ, {"OPENQABOT_TESTING": ""}),
+        patch("osc.conf.get_config", side_effect=Exception("osc not configured")),
+    ):
         assert get_default_obs_url() == "https://api.suse.de"
 
 

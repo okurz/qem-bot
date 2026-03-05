@@ -5,6 +5,9 @@
 from __future__ import annotations
 
 import os
+
+os.environ["OPENQABOT_TESTING"] = "1"
+
 import re
 from argparse import Namespace
 from collections import defaultdict
@@ -122,9 +125,11 @@ def _auto_clear_cache() -> None:
 @pytest.fixture(scope="session")
 def _session_settings() -> dict[str, Any]:
     """Capture default settings once per session to speed up test reset."""
-    with patch.dict(os.environ, {}, clear=True), patch("osc.conf.get_config", side_effect=RuntimeError):
-        defaults = Settings()
-        return {key: getattr(defaults, key) for key in Settings.model_fields}
+    with (
+        patch.dict(os.environ, {"OPENQABOT_TESTING": "1"}, clear=True),
+        patch("osc.conf.get_config", side_effect=RuntimeError),
+    ):
+        return {key: getattr(config_module.settings, key) for key in Settings.model_fields}
 
 
 @pytest.fixture(autouse=True)
