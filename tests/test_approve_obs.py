@@ -77,6 +77,7 @@ def test_403_response(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -
     mocker.patch("openqabot.config.settings.git_review_bot", "")
     caplog.set_level(logging.DEBUG, logger="bot.approver")
     mocker.patch("osc.core.change_review_state", side_effect=ObsHTTPError(403, "Not allowed", "sd", None))
+    mocker.patch("openqabot.approver.Approver.post_gitea_comment")
     assert Approver(args)() == 0
     assert "Received 'Not allowed'. Request 100 likely already approved, ignoring" in caplog.messages
 
@@ -89,6 +90,7 @@ def test_404_response(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -
     mocker.patch(
         "osc.core.change_review_state", side_effect=ObsHTTPError(404, "Not Found", None, io.BytesIO(b"review state"))
     )
+    mocker.patch("openqabot.approver.Approver.post_gitea_comment")
     assert Approver(args)() == 1
     assert "OBS API error for request 100 (removed or server issue): Not Found - review state" in caplog.messages
 
@@ -99,6 +101,7 @@ def test_404_response(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -
 def test_500_response(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -> None:
     caplog.set_level(logging.DEBUG, logger="bot.approver")
     mocker.patch("osc.core.change_review_state", side_effect=ObsHTTPError(500, "Not allowed", "sd", None))
+    mocker.patch("openqabot.approver.Approver.post_gitea_comment")
     assert Approver(args)() == 1
     assert "OBS API error for request 400: 500 - Not allowed" in caplog.messages
 
@@ -109,6 +112,7 @@ def test_500_response(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -
 def test_osc_unknown_exception(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -> None:
     caplog.set_level(logging.DEBUG, logger="bot.approver")
     mocker.patch("osc.core.change_review_state", side_effect=ArbitraryObsError)
+    mocker.patch("openqabot.approver.Approver.post_gitea_comment")
     assert Approver(args)() == 1
     assert "OBS API error: Failed to approve request" in caplog.text
 
@@ -122,7 +126,8 @@ def test_osc_all_pass(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -
 
     mocker.patch("openqabot.approver.dashboard.get_json", return_value=[{"job_id": 100000, "status": "passed"}])
     mocker.patch("osc.core.change_review_state")
-    mock_review_pr = mocker.patch("openqabot.approver.review_pr")
+    mock_review_pr = mocker.patch("openqabot.loader.gitea.review_pr")
+    mocker.patch("openqabot.approver.Approver.post_gitea_comment")
 
     assert Approver(args)() == 0
     expected = [
