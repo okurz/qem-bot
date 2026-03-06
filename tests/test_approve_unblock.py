@@ -9,6 +9,7 @@ import re
 from argparse import Namespace
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
+from unittest.mock import patch
 
 import pytest
 
@@ -141,9 +142,10 @@ def approver(submission: int = 0) -> int:
         incident=submission,
         gitea_token=None,
     )
-    approver = Approver(args)
-    approver.client.retries = 0
-    return approver()
+    with patch("openqabot.approver.Approver.post_gitea_comment"):
+        approver = Approver(args)
+        approver.client.retries = 0
+        return approver()
 
 
 @responses.activate

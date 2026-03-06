@@ -17,6 +17,7 @@ from urllib.parse import urlparse
 
 import osc.conf
 import osc.core
+import requests
 from openqa_client.exceptions import RequestError
 
 from openqabot import config
@@ -24,15 +25,18 @@ from openqabot.dashboard import get_json, patch
 from openqabot.errors import NoResultsError
 from openqabot.openqa import OpenQAInterface
 
-from .loader.gitea import make_token_header, review_pr
+from .loader import gitea
 from .loader.qem import (
     JobAggr,
     SubReq,
+    get_aggregate_results,
     get_aggregate_settings,
     get_single_submission,
+    get_submission_results,
     get_submission_settings,
     get_submissions_approver,
 )
+from .results_summarizer import summarize_message
 from .utc import UTC
 
 if TYPE_CHECKING:
@@ -40,8 +44,10 @@ if TYPE_CHECKING:
 
 log = getLogger("bot.approver")
 
+
 ACCEPTABLE_FOR_TEMPLATE = r"@review:acceptable_for:(?:incident|submission)_{sub}:(.+?)(?:$|\s)"
 MAINTENANCE_INCIDENT_IDENTIFIER = "Maintenance:/"
+PULLS_URL_MIN_PARTS_BEFORE = 2
 
 
 def ms2str(sub: SubReq) -> str:
@@ -108,7 +114,7 @@ class Approver:
     ) -> None:
         """Initialize the Approver class."""
         self.dry = args.dry
-        self.gitea_token: dict[str, str] = make_token_header(args.gitea_token)
+        self.gitea_token: dict[str, str] = gitea.make_token_header(args.gitea_token)
         if single_submission is None:
             self.single_submission = getattr(args, "submission", None) or getattr(args, "incident", None)
             self.all_submissions = args.all_submissions
@@ -130,7 +136,12 @@ class Approver:
         )
 
         overall_result = True
-        submissions_to_approve = [sub for sub in subreqs if self.approvable(sub)]
+        submissions_to_approve = []
+        for sub in subreqs:
+            if self.approvable(sub):
+                submissions_to_approve.append(sub)
+            if sub.type == "git":
+                self.post_gitea_comment(sub)
 
         log.info("Submissions to approve:")
         for sub in submissions_to_approve:
@@ -144,6 +155,87 @@ class Approver:
         log.info("Submission approval process finished")
 
         return 0 if overall_result else 1
+
+    def post_gitea_comment(self, sub: SubReq) -> None:
+        """Post or update a comment on a Gitea PR with test results."""
+        if not sub.url:
+            log.error("Submission %s has no URL", sub.sub)
+            return
+
+        try:
+            s_jobs = get_submission_results(sub.sub, self.token, submission_type=sub.type)
+            a_jobs = get_aggregate_results(sub.sub, self.token, submission_type=sub.type)
+        except (ValueError, NoResultsError) as e:
+            log.debug("No results for %s: %s", sub.sub, e)
+            return
+
+        all_jobs = s_jobs + a_jobs
+        if not all_jobs:
+            log.debug("Submission %s: No jobs found", sub.sub)
+            return
+
+        if any(j["status"] == "running" for j in all_jobs):
+            log.info("Postponing comment for %s: Some tests are still running", sub.sub)
+            return
+
+        msg = summarize_message(self.client, all_jobs)
+        if not msg:
+            log.debug("Skipping empty comment for %s", sub.sub)
+            return
+
+        self._update_gitea_comment(sub.url, msg)
+
+    def _update_gitea_comment(self, url: str, msg: str) -> None:
+        """Update or create a comment on a Gitea PR."""
+        parsed_url = urlparse(url)
+        path_parts = parsed_url.path.strip("/").split("/")
+
+        if "pulls" not in path_parts:
+            log.error("Could not parse Gitea PR URL: %s", url)
+            return
+
+        pulls_idx = path_parts.index("pulls")
+        if pulls_idx < PULLS_URL_MIN_PARTS_BEFORE or pulls_idx + 1 >= len(path_parts):
+            log.error("Could not parse Gitea PR URL: %s", url)
+            return
+
+        repo_name = f"{path_parts[pulls_idx - 2]}/{path_parts[pulls_idx - 1]}"
+        pr_str = path_parts[pulls_idx + 1]
+        if not pr_str.isdigit():
+            log.error("Could not parse Gitea PR URL: %s", url)
+            return
+        pr_number = int(pr_str)
+
+        full_msg = f"<!-- openqabot-report -->\n{msg}"
+        comments_url = gitea.comments_url(repo_name, pr_number)
+
+        try:
+            comments = gitea.get_json(comments_url, self.gitea_token)
+        except (requests.RequestException, ValueError):
+            log.exception("Could not fetch comments for %s PR %s", repo_name, pr_number)
+            return
+
+        existing_comment = next((c for c in comments if "<!-- openqabot-report -->" in c.get("body", "")), None)
+
+        if existing_comment:
+            if existing_comment["body"].strip() == full_msg.strip():
+                log.debug("Comment for %s PR %s is up to date", repo_name, pr_number)
+                return
+
+            if not self.dry:
+                log.info("Updating comment for %s PR %s", repo_name, pr_number)
+                gitea.patch_json(
+                    f"repos/{repo_name}/issues/comments/{existing_comment['id']}",
+                    self.gitea_token,
+                    {"body": full_msg},
+                )
+            else:
+                log.info("Dry run: Would update comment for %s PR %s", repo_name, pr_number)
+        elif not self.dry:
+            log.info("Creating new comment for %s PR %s", repo_name, pr_number)
+            gitea.post_json(comments_url, self.gitea_token, {"body": full_msg})
+        else:
+            log.info("Dry run: Would create new comment for %s PR %s", repo_name, pr_number)
 
     def approvable(self, sub: SubReq) -> bool:
         """Check if a submission is ready for approval."""
@@ -432,11 +524,25 @@ class Approver:
         if not sub.url:
             log.error("Gitea API error: PR %s has no URL", sub.sub)
             return False
+
+        parsed_url = urlparse(sub.url)
+        path_parts = parsed_url.path.strip("/").split("/")
+
+        if "pulls" not in path_parts:
+            log.error("Could not parse Gitea PR URL: %s", sub.url)
+            return False
+
+        pulls_idx = path_parts.index("pulls")
+        if pulls_idx < PULLS_URL_MIN_PARTS_BEFORE:
+            log.error("Could not parse Gitea PR URL: %s", sub.url)
+            return False
+
+        repo_name = f"{path_parts[pulls_idx - 2]}/{path_parts[pulls_idx - 1]}"
+
         try:
-            path_parts = urlparse(sub.url).path.split("/")
-            review_pr(
+            gitea.review_pr(
                 self.gitea_token,
-                "/".join(path_parts[-4:-2]),
+                repo_name,
                 sub.sub,
                 msg,
                 sub.scm_info or "",

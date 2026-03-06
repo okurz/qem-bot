@@ -82,6 +82,15 @@ def post_json(query: str, token: dict[str, str], post_data: Any, host: str | Non
         log.error("Gitea API error: POST to %s failed: %s", url, res.text)
 
 
+def patch_json(query: str, token: dict[str, str], patch_data: Any, host: str | None = None) -> Any:  # noqa: ANN401
+    """Patch JSON data in Gitea API."""
+    host = host or config.settings.gitea_url
+    url = host + "/api/v1/" + query
+    res = retried_requests.patch(url, verify=False, headers=token, json=patch_data)
+    if not res.ok:
+        log.error("Gitea API error: PATCH to %s failed: %s", url, res.text)
+
+
 @lru_cache(maxsize=128)
 def read_utf8(name: str) -> str:
     """Read a UTF-8 encoded response file."""
@@ -377,7 +386,8 @@ def add_build_result(
 def get_multibuild_data(obs_project: str) -> str:
     """Fetch multibuild configuration data for an OBS project."""
     r = MultibuildFlavorResolver(config.settings.obs_url, obs_project, "000productcompose")
-    return r.get_multibuild_data()
+    data = r.get_multibuild_data()
+    return data.decode("utf-8") if isinstance(data, bytes) else str(data or "")
 
 
 def determine_relevant_archs_from_multibuild_info(obs_project: str, *, dry: bool) -> set[str] | None:

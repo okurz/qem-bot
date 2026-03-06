@@ -22,6 +22,29 @@ def test_post_json_on_not_ok_logs_error(mocker: MockerFixture, caplog: pytest.Lo
     assert "Gitea API error: POST to my.host/api/v1/foo" in caplog.text
 
 
+def test_patch_json_success(mocker: MockerFixture) -> None:
+    mock_res = mocker.Mock()
+    mock_res.ok = True
+    mock_patch = mocker.patch("openqabot.loader.gitea.retried_requests.patch", return_value=mock_res)
+    gitea.patch_json("repos/foo/bar", {"Authorization": "token test"}, {"body": "test"})
+    mock_patch.assert_called_once_with(
+        "https://src.suse.de/api/v1/repos/foo/bar",
+        verify=False,
+        headers={"Authorization": "token test"},
+        json={"body": "test"},
+    )
+
+
+def test_patch_json_on_not_ok_logs_error(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.ERROR, logger="bot.loader.gitea")
+    mock_res = mocker.Mock()
+    mock_res.ok = False
+    mock_res.text = "Unauthorized"
+    mocker.patch("openqabot.loader.gitea.retried_requests.patch", return_value=mock_res)
+    gitea.patch_json("repos/foo/bar", {"Authorization": "token test"}, {"body": "test"})
+    assert "Gitea API error: PATCH to https://src.suse.de/api/v1/repos/foo/bar failed: Unauthorized" in caplog.text
+
+
 def test_get_product_version_from_repo_listing_json_error(mocker: MockerFixture) -> None:
     mock_log = mocker.patch("openqabot.loader.gitea.log")
     mock_response = MagicMock()

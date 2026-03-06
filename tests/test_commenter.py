@@ -14,6 +14,7 @@ import pytest
 from openqabot.commenter import Commenter
 from openqabot.config import DEFAULT_SUBMISSION_TYPE
 from openqabot.errors import NoResultsError
+from openqabot.results_summarizer import summarize_message
 from openqabot.types.submission import Submission
 from openqabot.types.types import ArchVer
 
@@ -411,7 +412,7 @@ def test_summarize_message_one_passed_job(
 ) -> None:
     commenter_setup["client"].return_value.openqa.baseurl = "https://openqa.opensuse.org"
     c = Commenter(mock_args)
-    result = c.summarize_message([make_job()])
+    result = summarize_message(c.client, [make_job()])
     assert "foo" in result
     assert "test-flavor" in result
     assert "1 tests passed" in result
@@ -424,7 +425,7 @@ def test_summarize_message_multiple_jobs_same_group(
 ) -> None:
     commenter_setup["client"].return_value.openqa.baseurl = "https://openqa.opensuse.org"
     c = Commenter(mock_args)
-    result = c.summarize_message([make_job(name="test_job_1"), make_job(job_id=2, name="test_job_2")])
+    result = summarize_message(c.client, [make_job(name="test_job_1"), make_job(job_id=2, name="test_job_2")])
     assert "foo" in result
     assert "test-flavor" in result
     assert "2 tests passed" in result
@@ -437,6 +438,6 @@ def test_summarize_message_job_status_none(
 ) -> None:
     commenter_setup["client"].return_value.openqa.baseurl = "https://openqa.opensuse.org"
     c = Commenter(mock_args)
-    result = c.summarize_message([make_job(status="none")])
+    result = summarize_message(c.client, [make_job(status="none")])
     assert "foo" in result
     assert "1 unfinished tests" in result
