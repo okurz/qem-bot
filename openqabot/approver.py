@@ -17,7 +17,7 @@ from urllib.parse import urlparse
 
 import osc.conf
 import osc.core
-import requests
+from requests.exceptions import RequestException
 from openqa_client.exceptions import RequestError
 
 from openqabot import config
@@ -196,7 +196,7 @@ class Approver:
 
         try:
             comments = gitea.get_json(comments_url, self.gitea_token)
-        except (requests.RequestException, ValueError):
+        except (RequestException, ValueError):
             log.exception("Could not fetch comments for %s PR %s", repo_name, pr_number)
             return
 
