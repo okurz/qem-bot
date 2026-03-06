@@ -187,3 +187,36 @@ def test_generate_repo_url_success(mocker: MockerFixture) -> None:
     expected_gitea_url = "https://gitea.com/products/products/sle/raw/branch/main/staging.config"
     mock_get.assert_called_once()
     assert mock_get.call_args[0][0] == expected_gitea_url
+
+
+def test_update_pr_comment_create(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.DEBUG, logger="bot.loader.gitea")
+    mock_get = mocker.patch("openqabot.loader.gitea.get_json", return_value=[])
+    mock_post = mocker.patch("openqabot.loader.gitea.post_json")
+    url = "https://src.suse.de/api/v1/repos/products/SLFO/pulls/123"
+    gitea.update_pr_comment(url, "msg", {"Authorization": "token test"})
+    assert "Creating new comment for products/SLFO PR 123" in caplog.text
+    mock_get.assert_called_once()
+    mock_post.assert_called_once()
+
+
+def test_update_pr_comment_update(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.DEBUG, logger="bot.loader.gitea")
+    existing = [{"id": 1, "body": "<!-- openqabot-report -->\nold msg"}]
+    mocker.patch("openqabot.loader.gitea.get_json", return_value=existing)
+    mock_patch = mocker.patch("openqabot.loader.gitea.patch_json")
+    url = "https://src.suse.de/api/v1/repos/products/SLFO/pulls/123"
+    gitea.update_pr_comment(url, "new msg", {"Authorization": "token test"})
+    assert "Updating comment for products/SLFO PR 123" in caplog.text
+    mock_patch.assert_called_once()
+
+
+def test_update_pr_comment_up_to_date(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.DEBUG, logger="bot.loader.gitea")
+    existing = [{"id": 1, "body": "<!-- openqabot-report -->\nmsg"}]
+    mocker.patch("openqabot.loader.gitea.get_json", return_value=existing)
+    mock_patch = mocker.patch("openqabot.loader.gitea.patch_json")
+    url = "https://src.suse.de/api/v1/repos/products/SLFO/pulls/123"
+    gitea.update_pr_comment(url, "msg", {"Authorization": "token test"})
+    assert "Comment for products/SLFO PR 123 is up to date" in caplog.text
+    mock_patch.assert_not_called()
