@@ -8,7 +8,6 @@ import logging
 import re
 from argparse import Namespace
 from typing import TYPE_CHECKING, Any
-from unittest.mock import patch
 
 import pytest
 
@@ -25,6 +24,8 @@ from .helpers import (
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
+else:
+    MockerFixture = Any
 
 
 def with_fake_qem(mode: str) -> Any:
@@ -89,7 +90,7 @@ def fake_responses_updating_job() -> None:
     responses.add(responses.PATCH, f"{settings.qem_dashboard_url}api/jobs/100001")
 
 
-def approver(submission: int = 0) -> int:
+def approver(mocker: MockerFixture, submission: int = 0) -> int:
     args = Namespace(
         dry=True,
         token="123",
@@ -98,10 +99,10 @@ def approver(submission: int = 0) -> int:
         incident=submission,
         gitea_token=None,
     )
-    with patch("openqabot.approver.Approver.post_gitea_comment"):
-        approver = Approver(args)
-        approver.client.retries = 0
-        return approver()
+    mocker.patch("openqabot.approver.Approver.post_gitea_comment")
+    approver = Approver(args)
+    approver.client.retries = 0
+    return approver()
 
 
 @responses.activate
@@ -109,7 +110,7 @@ def approver(submission: int = 0) -> int:
 def test_no_jobs(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -> None:
     caplog.set_level(logging.DEBUG, logger="bot.approver")
     mocker.patch("openqabot.approver.get_json", return_value=[])
-    approver()
+    approver(mocker)
     assert "SUSE:Maintenance:4:400 has at least one not-ok job in submission tests" in caplog.messages
     assert "Submissions to approve:" in caplog.messages
     assert "Submission approval process finished" in caplog.messages
@@ -128,7 +129,7 @@ def test_single_submission_not_ok_not_approved(caplog: pytest.LogCaptureFixture,
     mocker.patch("openqabot.approver.get_json", side_effect=mock_get_json)
     mocker.patch("openqabot.openqa.OpenQAInterface.get_job_comments", return_value=[])
 
-    approver(submission=1)
+    approver(mocker, submission=1)
     assert_submission_not_approved(
         caplog.messages,
         "SUSE:Maintenance:1:100",
@@ -148,7 +149,7 @@ def test_single_submission_passed_is_approved(caplog: pytest.LogCaptureFixture, 
 
     mocker.patch("openqabot.approver.get_json", side_effect=mock_get_json)
 
-    approver(submission=4)
+    approver(mocker, submission=4)
     assert_submission_approved(caplog.messages, "SUSE:Maintenance:4:400")
 
 
@@ -160,7 +161,7 @@ def test_all_passed(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -> 
 
     mocker.patch("openqabot.approver.get_json", return_value=[{"job_id": 100000, "status": "passed"}])
 
-    assert approver() == 0
+    assert approver(mocker) == 0
     expected = [
         "* SUSE:Maintenance:1:100",
         "* SUSE:Maintenance:2:200",
@@ -180,7 +181,7 @@ def test_sub_passed_aggr_without_results(caplog: pytest.LogCaptureFixture, mocke
 
     mocker.patch("openqabot.approver.get_json", return_value=[{"job_id": 100000, "status": "passed"}])
 
-    assert approver() == 0
+    assert approver(mocker) == 0
     expected = [
         "No aggregate test results found for SUSE:Maintenance:1:100",
         "No aggregate test results found for SUSE:Maintenance:2:200",
@@ -201,7 +202,7 @@ def test_sub_without_results(caplog: pytest.LogCaptureFixture, mocker: MockerFix
 
     mocker.patch("openqabot.approver.get_json", return_value=[{"job_id": 100000, "status": "passed"}])
 
-    assert approver() == 0
+    assert approver(mocker) == 0
     expected = [
         "Starting approving submissions in OBS or Gitea…",
         "Submissions to approve:",
@@ -229,7 +230,7 @@ def test_one_submission_failed(caplog: pytest.LogCaptureFixture, mocker: MockerF
 
     mocker.patch("openqabot.approver.get_json", side_effect=mock_get_json)
 
-    assert approver() == 0
+    assert approver(mocker) == 0
     expected = [
         "SUSE:Maintenance:1:100 has at least one not-ok job in submission tests",
         "Found not-ok, not-ignored job http://instance.qa/t100001 for submission smelt:1",
@@ -265,7 +266,7 @@ def test_one_aggr_failed(caplog: pytest.LogCaptureFixture, mocker: MockerFixture
 
     mocker.patch("openqabot.approver.get_json", side_effect=mock_get_json)
 
-    assert approver() == 0
+    assert approver(mocker) == 0
     expected = [
         "SUSE:Maintenance:2:200 has at least one not-ok job in aggregate tests",
         "Found not-ok, not-ignored job http://instance.qa/t100001 for submission smelt:2",

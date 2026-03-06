@@ -9,7 +9,6 @@ import re
 from argparse import Namespace
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
-from unittest.mock import patch
 
 import pytest
 
@@ -25,6 +24,8 @@ from .helpers import (
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
+else:
+    MockerFixture = Any
 
 
 @dataclass(frozen=True)
@@ -133,7 +134,7 @@ def fake_responses_for_unblocking_submissions_via_openqa_comments(
         )
 
 
-def approver(submission: int = 0) -> int:
+def approver(mocker: MockerFixture, submission: int = 0) -> int:
     args = Namespace(
         dry=True,
         token="123",
@@ -142,10 +143,10 @@ def approver(submission: int = 0) -> int:
         incident=submission,
         gitea_token=None,
     )
-    with patch("openqabot.approver.Approver.post_gitea_comment"):
-        approver = Approver(args)
-        approver.client.retries = 0
-        return approver()
+    mocker.patch("openqabot.approver.Approver.post_gitea_comment")
+    approver = Approver(args)
+    approver.client.retries = 0
+    return approver()
 
 
 @responses.activate
@@ -178,7 +179,7 @@ def test_approval_unblocked_via_openqa_comment(caplog: pytest.LogCaptureFixture,
     mocker.patch("openqabot.openqa.OpenQAInterface.get_job_comments", return_value=comments_return_value)
     mock_patch = mocker.patch("openqabot.approver.patch")
 
-    assert approver() == 0
+    assert approver(mocker) == 0
     expected = [
         "* SUSE:Maintenance:2:200",
         "Ignoring not-ok job http://instance.qa/t100002 for submission smelt:2 (manually marked as acceptable)",
@@ -232,7 +233,7 @@ def test_all_jobs_marked_as_acceptable_for_via_openqa_comment(
     mocker.patch("openqabot.openqa.OpenQAInterface.get_job_comments", side_effect=mock_get_job_comments)
     mock_patch = mocker.patch("openqabot.approver.patch")
 
-    assert approver() == 0
+    assert approver(mocker) == 0
     expected = [
         "Ignoring not-ok job http://instance.qa/t100002 for submission smelt:2 (manually marked as acceptable)",
     ]
@@ -276,7 +277,7 @@ def test_approval_still_blocked_if_openqa_comment_not_relevant(
     comments_return_value = [{"text": "@review:acceptable_for:submission_22:foo"}]
     mocker.patch("openqabot.openqa.OpenQAInterface.get_job_comments", return_value=comments_return_value)
 
-    assert approver() == 0
+    assert approver(mocker) == 0
     assert "* SUSE:Maintenance:2:200" not in caplog.messages
 
 
@@ -319,7 +320,7 @@ def test_approval_via_openqa_older_ok_job(
         return_value={"settings": {"BASE_TEST_REPOS": "Maintenance:/2/"}},
     )
 
-    assert approver() == 0
+    assert approver(mocker) == 0
 
     log_message = "* SUSE:Maintenance:2:200"
     assert log_message in caplog.messages if approved else log_message not in caplog.messages
@@ -356,7 +357,7 @@ def test_approval_still_blocked_via_openqa_older_ok_job_because_not_in_dashboard
         return_value={"settings": {"BASE_TEST_REPOS": "Maintenance:/2/"}},
     )
 
-    assert approver() == 0
+    assert approver(mocker) == 0
     assert "* SUSE:Maintenance:2:200" not in caplog.messages
 
 
@@ -368,9 +369,11 @@ def test_approval_still_blocked_via_openqa_older_ok_job_because_not_in_dashboard
     indirect=True,
 )
 @pytest.mark.usefixtures("fake_responses_for_unblocking_submissions_via_older_ok_result")
-def test_approval_still_blocked_if_openqa_older_job_dont_include_submission(caplog: pytest.LogCaptureFixture) -> None:
+def test_approval_still_blocked_if_openqa_older_job_dont_include_submission(
+    caplog: pytest.LogCaptureFixture, mocker: MockerFixture
+) -> None:
     caplog.set_level(logging.DEBUG, logger="bot.approver")
-    assert approver() == 0
+    assert approver(mocker) == 0
     assert "* SUSE:Maintenance:2:200" not in caplog.messages
 
 
@@ -422,7 +425,7 @@ def test_approval_unblocked_with_various_comment_formats(
     )
     mock_patch = mocker.patch("openqabot.approver.patch")
 
-    assert approver() == 0
+    assert approver(mocker) == 0
     assert "* SUSE:Maintenance:2:200" in caplog.messages
     assert (
         "Ignoring not-ok job http://instance.qa/t100002 for submission smelt:2 (manually marked as acceptable)"

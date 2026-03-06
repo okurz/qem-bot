@@ -13,11 +13,9 @@ from http import HTTPStatus
 from logging import getLogger
 from typing import TYPE_CHECKING
 from urllib.error import HTTPError
-from urllib.parse import urlparse
 
 import osc.conf
 import osc.core
-from requests.exceptions import RequestException
 from openqa_client.exceptions import RequestError
 
 from openqabot import config
