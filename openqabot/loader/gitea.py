@@ -41,8 +41,6 @@ JsonType = dict[str, Any] | list[Any]
 
 log = getLogger("bot.loader.gitea")
 
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
 
 @dataclass
 class BuildResults:
@@ -72,7 +70,7 @@ def make_token_header(token: str) -> dict[str, str]:
 def get_json(query: str, token: dict[str, str], host: str | None = None) -> JsonType:
     """Fetch JSON data from Gitea API."""
     host = host or config.settings.gitea_url
-    response = retried_requests.get(host + "/api/v1/" + query, verify=False, headers=token)
+    response = retried_requests.get(host + "/api/v1/" + query, verify=config.settings.gitea_verify, headers=token)
     response.raise_for_status()
     return response.json()
 
@@ -90,7 +88,9 @@ def _request_json(method: str, query: str, token: dict[str, str], post_data: Jso
     """Send a JSON request to Gitea API."""
     host = host or config.settings.gitea_url
     url = host + "/api/v1/" + query
-    res = getattr(retried_requests, method.lower())(url, verify=False, headers=token, json=post_data)
+    res = getattr(retried_requests, method.lower())(
+        url, verify=config.settings.gitea_verify, headers=token, json=post_data
+    )
     if not res.ok:
         log.error("Gitea API error: %s to %s failed: %s", method.upper(), url, res.text)
 
@@ -580,7 +580,7 @@ def add_packages_from_patchinfo(
         patch_info = read_xml("patch-info")
     else:
         try:
-            response = retried_requests.get(patch_info_url, verify=False, headers=token)
+            response = retried_requests.get(patch_info_url, verify=config.settings.gitea_verify, headers=token)
             response.raise_for_status()
             patch_info = etree.fromstring(response.content)
         except (etree.ParseError, requests.RequestException) as e:
