@@ -72,6 +72,45 @@ def parse_pr_url(url: str) -> tuple[str, int] | None:
     return match.group(1), int(match.group(2))
 
 
+def update_pr_comment(url: str, msg: str, token: dict[str, str], *, dry: bool = False) -> None:
+    """Update or create a comment on a Gitea PR with a specific tag."""
+    if not (res := parse_pr_url(url)):
+        log.error("Could not parse Gitea PR URL: %s", url)
+        return
+    repo_name, pr_number = res
+
+    full_msg = f"<!-- openqabot-report -->\n{msg}"
+    c_url = comments_url(repo_name, pr_number)
+
+    try:
+        comments = get_json(c_url, token)
+    except (requests.exceptions.RequestException, ValueError):
+        log.exception("Could not fetch comments for %s PR %s", repo_name, pr_number)
+        return
+
+    existing_comment = next((c for c in comments if "<!-- openqabot-report -->" in c.get("body", "")), None)
+
+    if existing_comment:
+        if existing_comment["body"].strip() == full_msg.strip():
+            log.debug("Comment for %s PR %s is up to date", repo_name, pr_number)
+            return
+
+        if not dry:
+            log.info("Updating comment for %s PR %s", repo_name, pr_number)
+            patch_json(
+                f"repos/{repo_name}/issues/comments/{existing_comment['id']}",
+                token,
+                {"body": full_msg},
+            )
+        else:
+            log.info("Dry run: Would update comment for %s PR %s", repo_name, pr_number)
+    elif not dry:
+        log.info("Creating new comment for %s PR %s", repo_name, pr_number)
+        post_json(c_url, token, {"body": full_msg})
+    else:
+        log.info("Dry run: Would create new comment for %s PR %s", repo_name, pr_number)
+
+
 def get_json(query: str, token: dict[str, str], host: str | None = None) -> Any:  # noqa: ANN401
     """Fetch JSON data from Gitea API."""
     host = host or config.settings.gitea_url

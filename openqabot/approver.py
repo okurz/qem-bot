@@ -134,18 +134,20 @@ class Approver:
             else get_submissions_approver(self.token)
         )
 
-        overall_result = True
-        submissions_to_approve = []
+        # 1. Provide feedback for Gitea PRs
         for sub in subreqs:
-            if self.approvable(sub):
-                submissions_to_approve.append(sub)
             if sub.type == "git":
                 self.post_gitea_comment(sub)
+
+        # 2. Decide which submissions to approve
+        submissions_to_approve = [sub for sub in subreqs if self.approvable(sub)]
 
         log.info("Submissions to approve:")
         for sub in submissions_to_approve:
             log.info("* %s", ms2str(sub))
 
+        # 3. Apply approvals
+        overall_result = True
         if not self.dry:
             osc.conf.get_config(override_apiurl=config.settings.obs_url)
             for sub in submissions_to_approve:
@@ -182,45 +184,7 @@ class Approver:
             log.debug("Skipping empty comment for %s", sub.sub)
             return
 
-        self._update_gitea_comment(sub.url, msg)
-
-    def _update_gitea_comment(self, url: str, msg: str) -> None:
-        """Update or create a comment on a Gitea PR."""
-        if not (res := gitea.parse_pr_url(url)):
-            log.error("Could not parse Gitea PR URL: %s", url)
-            return
-        repo_name, pr_number = res
-
-        full_msg = f"<!-- openqabot-report -->\n{msg}"
-        comments_url = gitea.comments_url(repo_name, pr_number)
-
-        try:
-            comments = gitea.get_json(comments_url, self.gitea_token)
-        except (RequestException, ValueError):
-            log.exception("Could not fetch comments for %s PR %s", repo_name, pr_number)
-            return
-
-        existing_comment = next((c for c in comments if "<!-- openqabot-report -->" in c.get("body", "")), None)
-
-        if existing_comment:
-            if existing_comment["body"].strip() == full_msg.strip():
-                log.debug("Comment for %s PR %s is up to date", repo_name, pr_number)
-                return
-
-            if not self.dry:
-                log.info("Updating comment for %s PR %s", repo_name, pr_number)
-                gitea.patch_json(
-                    f"repos/{repo_name}/issues/comments/{existing_comment['id']}",
-                    self.gitea_token,
-                    {"body": full_msg},
-                )
-            else:
-                log.info("Dry run: Would update comment for %s PR %s", repo_name, pr_number)
-        elif not self.dry:
-            log.info("Creating new comment for %s PR %s", repo_name, pr_number)
-            gitea.post_json(comments_url, self.gitea_token, {"body": full_msg})
-        else:
-            log.info("Dry run: Would create new comment for %s PR %s", repo_name, pr_number)
+        gitea.update_pr_comment(sub.url, msg, self.gitea_token, dry=self.dry)
 
     def approvable(self, sub: SubReq) -> bool:
         """Check if a submission is ready for approval."""
