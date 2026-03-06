@@ -29,7 +29,7 @@ def test_patch_json_success(mocker: MockerFixture) -> None:
     gitea.patch_json("repos/foo/bar", {"Authorization": "token test"}, {"body": "test"})
     mock_patch.assert_called_once_with(
         "https://src.suse.de/api/v1/repos/foo/bar",
-        verify=False,
+        verify=True,
         headers={"Authorization": "token test"},
         json={"body": "test"},
     )

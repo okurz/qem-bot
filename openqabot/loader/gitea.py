@@ -37,8 +37,6 @@ ARCHS = {"x86_64", "aarch64", "ppc64le", "s390x"}
 
 log = getLogger("bot.loader.gitea")
 
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
 
 @dataclass
 class BuildResults:
@@ -77,7 +75,7 @@ def parse_pr_url(url: str) -> tuple[str, int] | None:
 def get_json(query: str, token: dict[str, str], host: str | None = None) -> Any:  # noqa: ANN401
     """Fetch JSON data from Gitea API."""
     host = host or config.settings.gitea_url
-    response = retried_requests.get(host + "/api/v1/" + query, verify=False, headers=token)
+    response = retried_requests.get(host + "/api/v1/" + query, verify=config.settings.gitea_verify, headers=token)
     response.raise_for_status()
     return response.json()
 
@@ -86,7 +84,7 @@ def post_json(query: str, token: dict[str, str], post_data: Any, host: str | Non
     """Post JSON data to Gitea API."""
     host = host or config.settings.gitea_url
     url = host + "/api/v1/" + query
-    res = retried_requests.post(url, verify=False, headers=token, json=post_data)
+    res = retried_requests.post(url, verify=config.settings.gitea_verify, headers=token, json=post_data)
     if not res.ok:
         log.error("Gitea API error: POST to %s failed: %s", url, res.text)
 
@@ -95,7 +93,7 @@ def patch_json(query: str, token: dict[str, str], patch_data: Any, host: str | N
     """Patch JSON data in Gitea API."""
     host = host or config.settings.gitea_url
     url = host + "/api/v1/" + query
-    res = retried_requests.patch(url, verify=False, headers=token, json=patch_data)
+    res = retried_requests.patch(url, verify=config.settings.gitea_verify, headers=token, json=patch_data)
     if not res.ok:
         log.error("Gitea API error: PATCH to %s failed: %s", url, res.text)
 
@@ -564,7 +562,7 @@ def add_packages_from_patchinfo(
         patch_info = read_xml("patch-info")
     else:
         try:
-            response = retried_requests.get(patch_info_url, verify=False, headers=token)
+            response = retried_requests.get(patch_info_url, verify=config.settings.gitea_verify, headers=token)
             response.raise_for_status()
             patch_info = etree.fromstring(response.content)
         except (etree.ParseError, requests.RequestException) as e:
