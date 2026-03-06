@@ -13,7 +13,6 @@ from http import HTTPStatus
 from logging import getLogger
 from typing import TYPE_CHECKING
 from urllib.error import HTTPError
-from urllib.parse import urlparse
 
 import osc.conf
 import osc.core
