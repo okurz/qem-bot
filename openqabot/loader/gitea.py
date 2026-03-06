@@ -58,11 +58,20 @@ OBS_PROJECT_SHOW_REGEX = re.compile(r".*/project/show/([^/\s\?\#\)]+)")
 # Regex to find all HTTPS URLs, excluding common trailing punctuation like dots or parentheses
 # that are likely part of the surrounding text (e.g. at the end of a sentence or in Markdown).
 URL_FINDALL_REGEX = re.compile(r"https?://[^\s\?\#\)]*[^\s\?\#\)\.]")
+GITEA_PR_URL_REGEX = re.compile(r".*/([^/]+/[^/]+)/pulls/(\d+)(?:$|[/?#])")
 
 
 def make_token_header(token: str) -> dict[str, str]:
     """Create the Authorization header for Gitea API requests."""
     return {} if token is None else {"Authorization": "token " + token}
+
+
+def parse_pr_url(url: str) -> tuple[str, int] | None:
+    """Parse Gitea PR URL to extract repo name and PR number."""
+    match = GITEA_PR_URL_REGEX.search(url)
+    if not match:
+        return None
+    return match.group(1), int(match.group(2))
 
 
 def get_json(query: str, token: dict[str, str], host: str | None = None) -> Any:  # noqa: ANN401

@@ -47,7 +47,6 @@ log = getLogger("bot.approver")
 
 ACCEPTABLE_FOR_TEMPLATE = r"@review:acceptable_for:(?:incident|submission)_{sub}:(.+?)(?:$|\s)"
 MAINTENANCE_INCIDENT_IDENTIFIER = "Maintenance:/"
-PULLS_URL_MIN_PARTS_BEFORE = 2
 
 
 def ms2str(sub: SubReq) -> str:
@@ -187,24 +186,10 @@ class Approver:
 
     def _update_gitea_comment(self, url: str, msg: str) -> None:
         """Update or create a comment on a Gitea PR."""
-        parsed_url = urlparse(url)
-        path_parts = parsed_url.path.strip("/").split("/")
-
-        if "pulls" not in path_parts:
+        if not (res := gitea.parse_pr_url(url)):
             log.error("Could not parse Gitea PR URL: %s", url)
             return
-
-        pulls_idx = path_parts.index("pulls")
-        if pulls_idx < PULLS_URL_MIN_PARTS_BEFORE or pulls_idx + 1 >= len(path_parts):
-            log.error("Could not parse Gitea PR URL: %s", url)
-            return
-
-        repo_name = f"{path_parts[pulls_idx - 2]}/{path_parts[pulls_idx - 1]}"
-        pr_str = path_parts[pulls_idx + 1]
-        if not pr_str.isdigit():
-            log.error("Could not parse Gitea PR URL: %s", url)
-            return
-        pr_number = int(pr_str)
+        repo_name, pr_number = res
 
         full_msg = f"<!-- openqabot-report -->\n{msg}"
         comments_url = gitea.comments_url(repo_name, pr_number)
@@ -525,19 +510,10 @@ class Approver:
             log.error("Gitea API error: PR %s has no URL", sub.sub)
             return False
 
-        parsed_url = urlparse(sub.url)
-        path_parts = parsed_url.path.strip("/").split("/")
-
-        if "pulls" not in path_parts:
+        if not (res := gitea.parse_pr_url(sub.url)):
             log.error("Could not parse Gitea PR URL: %s", sub.url)
             return False
-
-        pulls_idx = path_parts.index("pulls")
-        if pulls_idx < PULLS_URL_MIN_PARTS_BEFORE:
-            log.error("Could not parse Gitea PR URL: %s", sub.url)
-            return False
-
-        repo_name = f"{path_parts[pulls_idx - 2]}/{path_parts[pulls_idx - 1]}"
+        repo_name, _ = res
 
         try:
             gitea.review_pr(
