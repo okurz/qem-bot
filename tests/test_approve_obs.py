@@ -145,4 +145,4 @@ def test_osc_all_pass(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -
         "Approving git:5",
     ]
     assert_log_messages(caplog.messages, expected)
-    mock_review_pr.assert_called_once_with(mocker.ANY, mocker.ANY, 5, mocker.ANY, mocker.ANY)
+    mock_review_pr.assert_called_once_with(mocker.ANY, mocker.ANY, 5, mocker.ANY, mocker.ANY, dry=False)

@@ -232,6 +232,7 @@ def review_pr(  # noqa: PLR0913
     commit_id: str,
     *,
     approve: bool = True,
+    dry: bool = False,
 ) -> None:
     """Post a review or comment on a Gitea PR."""
     if config.settings.git_review_bot_user:
@@ -247,7 +248,16 @@ def review_pr(  # noqa: PLR0913
             "commit_id": commit_id,
             "event": "APPROVED" if approve else "REQUEST_CHANGES",
         }
-    post_json(review_url, token, review_data)
+
+    if not dry:
+        log.info("%s PR %s in Gitea", "Approving" if approve else "Declining", pr_number)
+        post_json(review_url, token, review_data)
+    else:
+        log.info(
+            "Dry run: Would %s PR %s in Gitea",
+            "approve" if approve else "decline",
+            pr_number,
+        )
 
 
 def get_name(review: dict[str, Any], of: str, via: str) -> str:

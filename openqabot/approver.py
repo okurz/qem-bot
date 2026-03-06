@@ -444,6 +444,7 @@ class Approver:
                 sub.sub,
                 msg,
                 sub.scm_info or "",
+                dry=self.dry,
             )
         except Exception:
             log.exception("Gitea API error: Failed to approve PR %s", sub.sub)
