@@ -132,19 +132,18 @@ class Approver:
             else get_submissions_approver(self.token)
         )
 
-        # 1. Provide feedback for Gitea PRs
+        log.debug("Providing feedback for Gitea PRs")
         for sub in subreqs:
             if sub.type == "git":
                 self.post_gitea_comment(sub)
-
-        # 2. Decide which submissions to approve
+        log.debug("Deciding which submissions to approve")
         submissions_to_approve = [sub for sub in subreqs if self.approvable(sub)]
 
         log.info("Submissions to approve:")
         for sub in submissions_to_approve:
             log.info("* %s", ms2str(sub))
 
-        # 3. Apply approvals
+        log.debug("Applying approvals")
         overall_result = True
         if not self.dry:
             osc.conf.get_config(override_apiurl=config.settings.obs_url)
