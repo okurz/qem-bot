@@ -18,7 +18,7 @@ from openqabot.approver import Approver
 from openqabot.config import Settings
 from openqabot.dashboard import clear_cache
 from openqabot.errors import NoResultsError
-from openqabot.loader.gitea import read_json
+from openqabot.loader.gitea import _read_json as read_json
 from openqabot.loader.qem import JobAggr
 from openqabot.openqa import OpenQAInterface
 from openqabot.repodiff import Package

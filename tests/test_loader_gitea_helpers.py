@@ -1,5 +1,6 @@
 # Copyright SUSE LLC
 # SPDX-License-Identifier: MIT
+# ruff: noqa: SLF001
 """Test loader Gitea helpers."""
 
 import json
@@ -18,7 +19,7 @@ def test_post_json_on_not_ok_logs_error(mocker: MockerFixture, caplog: pytest.Lo
     mocked_post = mocker.Mock()
     mocked_post.ok = False
     mocker.patch("openqabot.loader.gitea.retried_requests.post", return_value=mocked_post)
-    gitea.post_json("foo", {}, {}, host="my.host")
+    gitea._post_json("foo", {}, {}, host="my.host")
     assert "Gitea API error: POST to my.host/api/v1/foo" in caplog.text
 
 
@@ -26,7 +27,7 @@ def test_patch_json_success(mocker: MockerFixture) -> None:
     mock_res = mocker.Mock()
     mock_res.ok = True
     mock_patch = mocker.patch("openqabot.loader.gitea.retried_requests.patch", return_value=mock_res)
-    gitea.patch_json("repos/foo/bar", {"Authorization": "token test"}, {"body": "test"})
+    gitea._patch_json("repos/foo/bar", {"Authorization": "token test"}, {"body": "test"})
     mock_patch.assert_called_once_with(
         "https://src.suse.de/api/v1/repos/foo/bar",
         verify=True,
@@ -41,7 +42,7 @@ def test_patch_json_on_not_ok_logs_error(mocker: MockerFixture, caplog: pytest.L
     mock_res.ok = False
     mock_res.text = "Unauthorized"
     mocker.patch("openqabot.loader.gitea.retried_requests.patch", return_value=mock_res)
-    gitea.patch_json("repos/foo/bar", {"Authorization": "token test"}, {"body": "test"})
+    gitea._patch_json("repos/foo/bar", {"Authorization": "token test"}, {"body": "test"})
     assert "Gitea API error: PATCH to https://src.suse.de/api/v1/repos/foo/bar failed: Unauthorized" in caplog.text
 
 
@@ -50,18 +51,18 @@ def test_get_product_version_from_repo_listing_json_error(mocker: MockerFixture)
     mock_response = MagicMock()
     mock_response.json.side_effect = json.JSONDecodeError("msg", "doc", 0)
     mocker.patch.object(gitea.retried_requests, "get", return_value=mock_response)
-    res = gitea.get_product_version_from_repo_listing("project", "product", "repo")
+    res = gitea._get_product_version_from_repo_listing("project", "product", "repo")
     assert not res
-    assert mock_log.info.called
+    assert mock_log.warning.called
 
 
 def test_get_product_version_from_repo_listing_http_error(mocker: MockerFixture) -> None:
-    gitea.get_product_version_from_repo_listing.cache_clear()
+    gitea._get_product_version_from_repo_listing.cache_clear()
     mock_log = mocker.patch("openqabot.loader.gitea.log")
     mock_response = MagicMock()
     mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("error")
     mocker.patch.object(gitea.retried_requests, "get", return_value=mock_response)
-    res = gitea.get_product_version_from_repo_listing("project", "product", "repo")
+    res = gitea._get_product_version_from_repo_listing("project", "product", "repo")
     assert not res
     assert mock_log.warning.called
 
@@ -69,19 +70,19 @@ def test_get_product_version_from_repo_listing_http_error(mocker: MockerFixture)
 def test_get_product_version_from_repo_listing_request_exception(
     mocker: MockerFixture, caplog: pytest.LogCaptureFixture
 ) -> None:
-    gitea.get_product_version_from_repo_listing.cache_clear()
+    gitea._get_product_version_from_repo_listing.cache_clear()
     caplog.set_level(logging.WARNING, logger="bot.loader.gitea")
     mocker.patch("openqabot.loader.gitea.retried_requests.get", side_effect=requests.RequestException("error"))
-    res = gitea.get_product_version_from_repo_listing("project", "product", "repo")
+    res = gitea._get_product_version_from_repo_listing("project", "product", "repo")
     assert not res
-    assert "Product version unresolved" in caplog.text
+    assert "Could not query" in caplog.text
 
 
 def test_add_packages_from_patchinfo_non_dry(mocker: MockerFixture) -> None:
     mock_get = mocker.patch("openqabot.loader.gitea.retried_requests.get")
     mock_get.return_value.content = b"<patchinfo><package>pkg1</package></patchinfo>"
     incident = {"packages": []}
-    gitea.add_packages_from_patchinfo(incident, {}, "url", dry=False)
+    gitea._add_packages_from_patchinfo(incident, {}, "url", dry=False)
     assert incident["packages"] == ["pkg1"]
 
 
@@ -90,13 +91,13 @@ def test_add_packages_from_patchinfo_parse_error(mocker: MockerFixture, caplog: 
     mock_get = mocker.patch("openqabot.loader.gitea.retried_requests.get")
     mock_get.return_value.content = b"."
     incident = {"packages": []}
-    gitea.add_packages_from_patchinfo(incident, {}, "url", dry=False)
+    gitea._add_packages_from_patchinfo(incident, {}, "url", dry=False)
     assert incident["packages"] == []
     assert "Failed to parse patchinfo from url: Start tag expected, '<' not found" in caplog.text
 
 
 def test_get_product_version_from_repo_listing_success(mocker: MockerFixture) -> None:
-    gitea.get_product_version_from_repo_listing.cache_clear()
+    gitea._get_product_version_from_repo_listing.cache_clear()
     mock_response = MagicMock()
     mock_response.json.return_value = {
         "data": [
@@ -108,28 +109,28 @@ def test_get_product_version_from_repo_listing_success(mocker: MockerFixture) ->
     # product name 'SLES', prefix 'SLES-'
     # _extract_version will be called with name 'SLES-15-SP4-x86_64' and prefix 'SLES-'
     # remainder '15-SP4-x86_64', next(...) returns '15'
-    res = gitea.get_product_version_from_repo_listing("project", "SLES", "repo")
+    res = gitea._get_product_version_from_repo_listing("project", "SLES", "repo")
     assert res == "15"
 
 
 def test_get_product_version_from_repo_listing_requests_json_error(
     mocker: MockerFixture, caplog: pytest.LogCaptureFixture
 ) -> None:
-    gitea.get_product_version_from_repo_listing.cache_clear()
+    gitea._get_product_version_from_repo_listing.cache_clear()
     caplog.set_level(logging.INFO, logger="bot.loader.gitea")
     mock_response = MagicMock()
     # Use a dummy exception that mimics requests.exceptions.JSONDecodeError if needed,
     # but requests.exceptions.JSONDecodeError should work.
     mock_response.json.side_effect = requests.exceptions.JSONDecodeError("msg", "doc", 0)
     mocker.patch("openqabot.loader.gitea.retried_requests.get", return_value=mock_response)
-    res = gitea.get_product_version_from_repo_listing("project_json", "product_json", "repo_json")
+    res = gitea._get_product_version_from_repo_listing("project_json", "product_json", "repo_json")
     assert not res
-    assert "Invalid JSON document" in caplog.text
+    assert "Could not query" in caplog.text
 
 
 def test_add_channel_for_build_result_local() -> None:
     projects: set[str] = set()
-    res = gitea.add_channel_for_build_result("myproj", "local", "myprod", None, projects)
+    res = gitea._add_channel_for_build_result("myproj", "local", "myprod", None, projects)
     assert res == "myproj:local"
     assert len(projects) == 0
 
@@ -137,13 +138,13 @@ def test_add_channel_for_build_result_local() -> None:
 def test_is_build_acceptable_fail(caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level(logging.INFO, logger="bot.loader.gitea")
     incident = {"failed_or_unpublished_packages": ["pkg1"], "successful_packages": ["pkg2"]}
-    assert not gitea.is_build_acceptable_and_log_if_not(incident, 123)
-    assert "Skipping PR git:123: Not all packages succeeded or published" in caplog.text
+    assert not gitea._is_build_acceptable_and_log_if_not(incident, 123)
+    assert "PR git:123 skipped: 1 failed/unpub" in caplog.text
 
 
 def test_is_build_acceptable_success() -> None:
     incident = {"failed_or_unpublished_packages": [], "successful_packages": ["pkg1"]}
-    assert gitea.is_build_acceptable_and_log_if_not(incident, 123)
+    assert gitea._is_build_acceptable_and_log_if_not(incident, 123)
 
 
 def test_generate_repo_url_success(mocker: MockerFixture) -> None:
@@ -172,11 +173,11 @@ def test_generate_repo_url_success(mocker: MockerFixture) -> None:
 
 def test_update_pr_comment_create(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level(logging.DEBUG, logger="bot.loader.gitea")
-    mock_get = mocker.patch("openqabot.loader.gitea.get_json", return_value=[])
-    mock_post = mocker.patch("openqabot.loader.gitea.post_json")
+    mock_get = mocker.patch("openqabot.loader.gitea._get_json", return_value=[])
+    mock_post = mocker.patch("openqabot.loader.gitea._post_json")
     url = "https://src.suse.de/api/v1/repos/products/SLFO/pulls/123"
     gitea.update_pr_comment(url, "msg", {"Authorization": "token test"})
-    assert "Creating new comment for products/SLFO PR 123" in caplog.text
+    assert "Creating comment for products/SLFO PR 123" in caplog.text
     mock_get.assert_called_once()
     mock_post.assert_called_once()
 
@@ -184,8 +185,8 @@ def test_update_pr_comment_create(mocker: MockerFixture, caplog: pytest.LogCaptu
 def test_update_pr_comment_update(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level(logging.DEBUG, logger="bot.loader.gitea")
     existing = [{"id": 1, "body": "<!-- openqabot-report -->\nold msg"}]
-    mocker.patch("openqabot.loader.gitea.get_json", return_value=existing)
-    mock_patch = mocker.patch("openqabot.loader.gitea.patch_json")
+    mocker.patch("openqabot.loader.gitea._get_json", return_value=existing)
+    mock_patch = mocker.patch("openqabot.loader.gitea._patch_json")
     url = "https://src.suse.de/api/v1/repos/products/SLFO/pulls/123"
     gitea.update_pr_comment(url, "new msg", {"Authorization": "token test"})
     assert "Updating comment for products/SLFO PR 123" in caplog.text
@@ -195,27 +196,27 @@ def test_update_pr_comment_update(mocker: MockerFixture, caplog: pytest.LogCaptu
 def test_update_pr_comment_up_to_date(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level(logging.DEBUG, logger="bot.loader.gitea")
     existing = [{"id": 1, "body": "<!-- openqabot-report -->\nmsg"}]
-    mocker.patch("openqabot.loader.gitea.get_json", return_value=existing)
-    mock_patch = mocker.patch("openqabot.loader.gitea.patch_json")
+    mocker.patch("openqabot.loader.gitea._get_json", return_value=existing)
+    mock_patch = mocker.patch("openqabot.loader.gitea._patch_json")
     url = "https://src.suse.de/api/v1/repos/products/SLFO/pulls/123"
     gitea.update_pr_comment(url, "msg", {"Authorization": "token test"})
-    assert "Comment for products/SLFO PR 123 is up to date" in caplog.text
+    assert "Comment for products/SLFO PR 123 up to date" in caplog.text
     mock_patch.assert_not_called()
 
 
 def test_update_pr_comment_dry(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level(logging.DEBUG, logger="bot.loader.gitea")
-    mocker.patch("openqabot.loader.gitea.get_json", return_value=[])
-    mock_post = mocker.patch("openqabot.loader.gitea.post_json")
+    mocker.patch("openqabot.loader.gitea._get_json", return_value=[])
+    mock_post = mocker.patch("openqabot.loader.gitea._post_json")
     url = "https://src.suse.de/api/v1/repos/products/SLFO/pulls/123"
     gitea.update_pr_comment(url, "msg", {"Authorization": "token test"}, dry=True)
-    assert "Dry run: Would create new comment for products/SLFO PR 123" in caplog.text
+    assert "Dry: Would create comment for products/SLFO PR 123" in caplog.text
     mock_post.assert_not_called()
 
 
 def test_review_pr_dry(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level(logging.DEBUG, logger="bot.loader.gitea")
-    mock_post = mocker.patch("openqabot.loader.gitea.post_json")
+    mock_post = mocker.patch("openqabot.loader.gitea._post_json")
     gitea.review_pr({}, "repo", 123, "msg", "commit", dry=True)
     assert "Dry run: Would approve PR 123 in Gitea" in caplog.text
     mock_post.assert_not_called()
@@ -228,12 +229,12 @@ def test_parse_pr_url_none() -> None:
 def test_update_pr_comment_unparseable_url(caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level(logging.ERROR, logger="bot.loader.gitea")
     gitea.update_pr_comment("https://invalid.url", "msg", {})
-    assert "Could not parse Gitea PR URL: https://invalid.url" in caplog.text
+    assert "Could not parse PR URL: https://invalid.url" in caplog.text
 
 
 def test_update_pr_comment_fetch_error(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level(logging.ERROR, logger="bot.loader.gitea")
-    mocker.patch("openqabot.loader.gitea.get_json", side_effect=ValueError("bad json"))
+    mocker.patch("openqabot.loader.gitea._get_json", side_effect=ValueError("bad json"))
     url = "https://src.suse.de/api/v1/repos/products/SLFO/pulls/123"
     gitea.update_pr_comment(url, "msg", {})
     assert "Could not fetch comments for products/SLFO PR 123" in caplog.text
@@ -242,9 +243,9 @@ def test_update_pr_comment_fetch_error(mocker: MockerFixture, caplog: pytest.Log
 def test_update_pr_comment_update_dry(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level(logging.DEBUG, logger="bot.loader.gitea")
     existing = [{"id": 1, "body": "<!-- openqabot-report -->\nold msg"}]
-    mocker.patch("openqabot.loader.gitea.get_json", return_value=existing)
-    mock_patch = mocker.patch("openqabot.loader.gitea.patch_json")
+    mocker.patch("openqabot.loader.gitea._get_json", return_value=existing)
+    mock_patch = mocker.patch("openqabot.loader.gitea._patch_json")
     url = "https://src.suse.de/api/v1/repos/products/SLFO/pulls/123"
     gitea.update_pr_comment(url, "new msg", {}, dry=True)
-    assert "Dry run: Would update comment for products/SLFO PR 123" in caplog.text
+    assert "Dry: Would update comment for products/SLFO PR 123" in caplog.text
     mock_patch.assert_not_called()

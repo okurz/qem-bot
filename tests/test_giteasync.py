@@ -20,14 +20,14 @@ import responses
 from openqabot.config import settings
 from openqabot.giteasync import GiteaSync
 from openqabot.loader.gitea import (
-    add_build_results,
-    add_packages_from_files,
+    _add_build_results as add_build_results,
+    _add_packages_from_files as add_packages_from_files,
     compute_repo_url_for_job_setting,
     get_product_name,
-    get_product_name_and_version_from_scmsync,
-    read_json,
-    read_utf8,
-    read_xml,
+    _get_product_name_and_version_from_scmsync as get_product_name_and_version_from_scmsync,
+    _read_json as read_json,
+    _read_utf8 as read_utf8,
+    _read_xml as read_xml,
     review_pr,
 )
 from openqabot.types.types import ProdVer, Repos
@@ -171,9 +171,9 @@ def test_sync_with_product_repo(mocker: MockerFixture, caplog: pytest.LogCapture
     mocker.patch("openqabot.config.settings.obs_products", "SLES")
     run_gitea_sync(mocker, caplog, args)
     expected_repo = "SUSE:SLFO:1.1.99:PullRequest:124:SLES"
-    assert "Relevant archs for " + expected_repo + ": ['aarch64', 'x86_64']" in caplog.messages
+    assert "Archs for " + expected_repo + ": ['aarch64', 'x86_64']" in caplog.messages
+
     assert "Loaded 7 active PRs from products/SLFO" in caplog.messages
-    assert "Fetching info for PR git:131 from Gitea" in caplog.messages
     assert "Syncing Gitea PRs to QEM Dashboard: Considering 1 submissions" in caplog.messages
     assert len(responses.calls) == 25
     assert len(cast("Any", responses.calls[-1].response).json()) == 1
@@ -238,7 +238,7 @@ def test_sync_with_codestream_repo(mocker: MockerFixture, args: Namespace, caplo
 def test_sync_without_results(mocker: MockerFixture, caplog: pytest.LogCaptureFixture, args: Namespace) -> None:
     args.allow_build_failures = False
     run_gitea_sync(mocker, caplog, args, no_build_results=True)
-    m = "Skipping PR git:124: No packages have been built/published (there are 0 failed/unpublished packages)"
+    m = "PR git:124 skipped: No built packages"
     assert m in caplog.messages
 
 
@@ -261,7 +261,7 @@ def test_handling_unavailable_build_info(mocker: MockerFixture, caplog: pytest.L
     add_build_results(submission, ["https://foo/project/show/bar"], dry=False)
     assert submission["successful_packages"] == []
     assert submission["failed_or_unpublished_packages"] == ["bar"]
-    assert "Build results for project bar unreadable, skipping:" in caplog.text
+    assert "Build results for project bar unreadable" in caplog.text
     assert "Traceback" not in caplog.text
 
 
