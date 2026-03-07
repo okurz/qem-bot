@@ -55,8 +55,13 @@ def test_post_gitea_comment_no_results(
     sub.type = "git"
 
     mocker.patch("openqabot.approver.get_submission_results", side_effect=NoResultsError)
+    mocker.patch("openqabot.approver.get_aggregate_results", side_effect=NoResultsError)
+    mock_update = mocker.patch("openqabot.loader.gitea.update_pr_comment")
     approver.post_gitea_comment(sub)
-    assert "No results for 123" in caplog.text
+    assert "No submission results for 123" in caplog.text
+    assert "No aggregate results for 123" in caplog.text
+    assert "Submission 123: No jobs found" in caplog.text
+    mock_update.assert_not_called()
 
 
 def test_post_gitea_comment_no_jobs(
@@ -70,8 +75,10 @@ def test_post_gitea_comment_no_jobs(
 
     mocker.patch("openqabot.approver.get_submission_results", return_value=[])
     mocker.patch("openqabot.approver.get_aggregate_results", return_value=[])
+    mock_update = mocker.patch("openqabot.loader.gitea.update_pr_comment")
     approver.post_gitea_comment(sub)
     assert "Submission 123: No jobs found" in caplog.text
+    mock_update.assert_not_called()
 
 
 def test_post_gitea_comment_running_jobs(

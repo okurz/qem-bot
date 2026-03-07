@@ -219,3 +219,32 @@ def test_review_pr_dry(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) 
     gitea.review_pr({}, "repo", 123, "msg", "commit", dry=True)
     assert "Dry run: Would approve PR 123 in Gitea" in caplog.text
     mock_post.assert_not_called()
+
+
+def test_parse_pr_url_none() -> None:
+    assert gitea.parse_pr_url("https://invalid.url") is None
+
+
+def test_update_pr_comment_unparseable_url(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.ERROR, logger="bot.loader.gitea")
+    gitea.update_pr_comment("https://invalid.url", "msg", {})
+    assert "Could not parse Gitea PR URL: https://invalid.url" in caplog.text
+
+
+def test_update_pr_comment_fetch_error(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.ERROR, logger="bot.loader.gitea")
+    mocker.patch("openqabot.loader.gitea.get_json", side_effect=ValueError("bad json"))
+    url = "https://src.suse.de/api/v1/repos/products/SLFO/pulls/123"
+    gitea.update_pr_comment(url, "msg", {})
+    assert "Could not fetch comments for products/SLFO PR 123" in caplog.text
+
+
+def test_update_pr_comment_update_dry(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.DEBUG, logger="bot.loader.gitea")
+    existing = [{"id": 1, "body": "<!-- openqabot-report -->\nold msg"}]
+    mocker.patch("openqabot.loader.gitea.get_json", return_value=existing)
+    mock_patch = mocker.patch("openqabot.loader.gitea.patch_json")
+    url = "https://src.suse.de/api/v1/repos/products/SLFO/pulls/123"
+    gitea.update_pr_comment(url, "new msg", {}, dry=True)
+    assert "Dry run: Would update comment for products/SLFO PR 123" in caplog.text
+    mock_patch.assert_not_called()
