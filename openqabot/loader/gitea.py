@@ -1,6 +1,5 @@
 # Copyright SUSE LLC
 # SPDX-License-Identifier: MIT
-"""Gitea loader."""
 
 from __future__ import annotations
 
@@ -31,16 +30,12 @@ if TYPE_CHECKING:
     from openqabot.types.pullrequest import PullRequest
     from openqabot.types.types import Repos
 
-# Supported architectures for openQA job scheduling
 ARCHS = {"x86_64", "aarch64", "ppc64le", "s390x"}
-
 log = getLogger("bot.loader.gitea")
 
 
 @dataclass
 class BuildResults:
-    """Results of a build."""
-
     projects: set[str] = field(default_factory=set)
     successful: set[str] = field(default_factory=set)
     unpublished: set[str] = field(default_factory=set)
@@ -48,38 +43,26 @@ class BuildResults:
     unavailable: set[str] = field(default_factory=set)
 
 
-# Regex to extract product name from an OBS project name
 PROJECT_PRODUCT_REGEX = re.compile(r".*:PullRequest:\d+:(.*)")
-# Regex to extract product and version from scmsync URL
 SCMSYNC_REGEX = re.compile(r".*/products/(.*)#([\d\.]{2,6})$")
-# Regex to find version number strings in package names
 VERSION_EXTRACT_REGEX = re.compile(r"[.\d]+")
-# Regex to extract project name from an OBS project page URL
 OBS_PROJECT_SHOW_REGEX = re.compile(r".*/project/show/([^/\s\?\#\)]+)")
-# Regex to find all HTTPS URLs, excluding common trailing punctuation like dots or parentheses
-# that are likely part of the surrounding text (e.g. at the end of a sentence or in Markdown).
-# Regex to find all HTTPS URLs in a block of text or comment
 URL_FINDALL_REGEX = re.compile(r"https?://[^\s\?\#\)]*[^\s\?\#\)\.]")
-# Regex to parse a Gitea pull request URL and extract repo/number
 GITEA_PR_URL_REGEX = re.compile(r".*/([^/]+/[^/]+)/pulls/(\d+)(?:$|[/?#])")
 
 
 def make_token_header(token: str) -> dict[str, str]:
-    """Create the Authorization header for Gitea API requests."""
     return {} if token is None else {"Authorization": "token " + token}
 
 
 def parse_pr_url(url: str) -> tuple[str, int] | None:
-    """Parse Gitea PR URL to extract repo name and PR number."""
     match = GITEA_PR_URL_REGEX.search(url)
     if not match:
         return None
     return match.group(1), int(match.group(2))
 
 
-# Update or create a specific tag-marked comment on a Gitea PR
 def update_pr_comment(url: str, msg: str, token: dict[str, str], *, dry: bool = False) -> None:
-    """Update or create a comment on a Gitea PR with a specific tag."""
     if not (res := parse_pr_url(url)):
         log.error("Could not parse Gitea PR URL: %s", url)
         return
@@ -117,9 +100,7 @@ def update_pr_comment(url: str, msg: str, token: dict[str, str], *, dry: bool = 
         log.info("Dry run: Would create new comment for %s PR %s", repo_name, pr_number)
 
 
-# Fetch JSON data from the Gitea API using retried requests
 def get_json(query: str, token: dict[str, str], host: str | None = None) -> Any:  # noqa: ANN401
-    """Fetch JSON data from Gitea API."""
     host = host or config.settings.gitea_url
     response = retried_requests.get(host + "/api/v1/" + query, verify=config.settings.gitea_verify, headers=token)
     response.raise_for_status()
@@ -127,7 +108,6 @@ def get_json(query: str, token: dict[str, str], host: str | None = None) -> Any:
 
 
 def post_json(query: str, token: dict[str, str], post_data: Any, host: str | None = None) -> Any:  # noqa: ANN401
-    """Post JSON data to Gitea API."""
     host = host or config.settings.gitea_url
     url = host + "/api/v1/" + query
     res = retried_requests.post(url, verify=config.settings.gitea_verify, headers=token, json=post_data)
@@ -136,7 +116,6 @@ def post_json(query: str, token: dict[str, str], post_data: Any, host: str | Non
 
 
 def patch_json(query: str, token: dict[str, str], patch_data: Any, host: str | None = None) -> Any:  # noqa: ANN401
-    """Patch JSON data in Gitea API."""
     host = host or config.settings.gitea_url
     url = host + "/api/v1/" + query
     res = retried_requests.patch(url, verify=config.settings.gitea_verify, headers=token, json=patch_data)
@@ -146,37 +125,28 @@ def patch_json(query: str, token: dict[str, str], patch_data: Any, host: str | N
 
 @lru_cache(maxsize=128)
 def read_utf8(name: str) -> str:
-    """Read a UTF-8 encoded response file."""
     return Path(f"responses/{name}").read_text(encoding="utf8")
 
 
 @lru_cache(maxsize=128)
 def read_json(name: str) -> Any:  # noqa: ANN401
-    """Read a JSON response file."""
     return json.loads(read_utf8(name + ".json"))
 
 
 @lru_cache(maxsize=128)
 def read_xml(name: str) -> etree.ElementTree:
-    """Read an XML response file."""
     return etree.parse(BytesIO(read_utf8(name + ".xml").encode("utf-8")))
 
 
 def reviews_url(repo_name: str, number: int) -> str:
-    """Construct the URL for PR reviews."""
-    # https://docs.gitea.com/api/1.20/#tag/repository/operation/repolistPullReviews
     return f"repos/{repo_name}/pulls/{number}/reviews"
 
 
 def changed_files_url(repo_name: str, number: int) -> str:
-    """Construct the URL for PR changed files."""
-    # https://docs.gitea.com/api/1.20/#tag/repository/operation/repoGetPullRequestFiles
     return f"repos/{repo_name}/pulls/{number}/files"
 
 
 def comments_url(repo_name: str, number: int) -> str:
-    """Construct the URL for PR comments."""
-    # https://docs.gitea.com/api/1.20/#tag/issue/operation/issueCreateComment
     return f"repos/{repo_name}/issues/{number}/comments"
 
 
@@ -186,26 +156,21 @@ def staging_config_url(repo_name: str, branch: str) -> str:
 
 
 def get_product_name(obs_project: str) -> str:
-    """Extract product name from an OBS project name."""
     product_match = PROJECT_PRODUCT_REGEX.search(obs_project)
     return product_match.group(1) if product_match else ""
 
 
-# Extract the Sle product name from an OBS project name
 def get_product_name_and_version_from_scmsync(scmsync_url: str) -> tuple[str, str]:
-    """Extract product name and version from an scmsync URL."""
     m = SCMSYNC_REGEX.search(scmsync_url)
     return (m.group(1), m.group(2)) if m else ("", "")
 
 
-# Build a comma-separated list of repository URLs for job settings
 def compute_repo_url_for_job_setting(
     base: str,
     repo: Repos,
     product_repo: list[str] | str | None,
     product_version: str | None,
 ) -> str:
-    """Construct repository URLs for openQA job settings."""
     product_names = get_product_name(repo.version) if product_repo is None else product_repo
     p_ver = product_version or repo.product_version
     product_list = product_names if isinstance(product_names, list) else [product_names]
@@ -213,17 +178,13 @@ def compute_repo_url_for_job_setting(
     return ",".join(repo_with_opts.compute_url(base, p, path="", project="SLFO") for p in product_list)
 
 
-# Retrieve all currently open pull requests for a given repository
 def get_open_prs(token: dict[str, str], repo: str, *, dry: bool, number: int | None) -> list[Any]:
-    """Fetch open PRs from a Gitea repository."""
     log.debug("Fetching open PRs from '%s'%s", repo, ", dry-run" if dry else "")
     if dry:
         return read_json("pulls")
     if number is not None:
         try:
             pr = get_json(f"repos/{repo}/pulls/{number}", token)
-        # Catching RequestException for general API errors, and json's JSONDecodeError
-        # for cases where requests might not wrap it in RequestException
         except (requests.exceptions.RequestException, json.JSONDecodeError, KeyError):
             log.exception("PR git:%s ignored: Could not read PR metadata", number)
             return []
@@ -233,7 +194,6 @@ def get_open_prs(token: dict[str, str], repo: str, *, dry: bool, number: int | N
     def iter_pr_pages() -> Any:  # noqa: ANN401
         page = 1
         while True:
-            # https://docs.gitea.com/api/1.20/#tag/repository/operation/repolistPullRequests
             prs_on_page = get_json(f"repos/{repo}/pulls?state=open&page={page}", token)
             if not isinstance(prs_on_page, list) or not prs_on_page:
                 return
@@ -250,7 +210,6 @@ def get_open_prs(token: dict[str, str], repo: str, *, dry: bool, number: int | N
         return []
 
 
-# Post a review status (approval/rejection) or a comment to a PR
 def review_pr(  # noqa: PLR0913
     token: dict[str, str],
     repo_name: str,
@@ -261,7 +220,6 @@ def review_pr(  # noqa: PLR0913
     approve: bool = True,
     dry: bool = False,
 ) -> None:
-    """Post a review status or a comment to a Gitea PR."""
     if config.settings.git_review_bot_user:
         review_url = comments_url(repo_name, pr_number)
         review_cmd = f"@{config.settings.git_review_bot_user}: "
@@ -288,7 +246,6 @@ def review_pr(  # noqa: PLR0913
 
 
 def get_name(review: dict[str, Any], of: str, via: str) -> str:
-    """Extract a name from a Gitea review entity."""
     entity = review.get(of)
     return entity.get(via, "") if entity is not None else ""
 
@@ -297,22 +254,16 @@ def is_review_requested_by(
     review: dict[str, Any],
     users: tuple[str | None, ...] | None = None,
 ) -> bool:
-    """Check if a review was requested by specific users or groups."""
     if users is None:
         users = (config.settings.obs_group, config.settings.git_review_bot_user)
     user_specifications = (
-        get_name(review, "user", "login"),  # review via our bot account or review bot
-        get_name(review, "team", "name"),  # review request for team bot is part of
+        get_name(review, "user", "login"),
+        get_name(review, "team", "name"),
     )
     return any(user in user_specifications for user in users)
 
 
-# Aggregate PR reviews and determine the submission status
 def add_reviews(submission: dict[str, Any], reviews: list[Any]) -> int:
-    """Process PR reviews and update submission status.
-
-    Returns number of reviews by us that have been requested.
-    """
     pending_states = {"PENDING", "REQUEST_REVIEW"}
     open_reviews = [r for r in reviews if not r.get("dismissed", True)]
     qam_states = [r.get("state", "") for r in open_reviews if is_review_requested_by(r)]
