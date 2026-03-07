@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from openqabot.types.pullrequest import PullRequest
     from openqabot.types.types import Repos
 
+# Supported architectures for openQA job scheduling
 ARCHS = {"x86_64", "aarch64", "ppc64le", "s390x"}
 
 log = getLogger("bot.loader.gitea")
@@ -47,13 +48,19 @@ class BuildResults:
     unavailable: set[str] = field(default_factory=set)
 
 
+# Regex to extract product name from an OBS project name
 PROJECT_PRODUCT_REGEX = re.compile(r".*:PullRequest:\d+:(.*)")
+# Regex to extract product and version from scmsync URL
 SCMSYNC_REGEX = re.compile(r".*/products/(.*)#([\d\.]{2,6})$")
+# Regex to find version number strings in package names
 VERSION_EXTRACT_REGEX = re.compile(r"[.\d]+")
+# Regex to extract project name from an OBS project page URL
 OBS_PROJECT_SHOW_REGEX = re.compile(r".*/project/show/([^/\s\?\#\)]+)")
 # Regex to find all HTTPS URLs, excluding common trailing punctuation like dots or parentheses
 # that are likely part of the surrounding text (e.g. at the end of a sentence or in Markdown).
+# Regex to find all HTTPS URLs in a block of text or comment
 URL_FINDALL_REGEX = re.compile(r"https?://[^\s\?\#\)]*[^\s\?\#\)\.]")
+# Regex to parse a Gitea pull request URL and extract repo/number
 GITEA_PR_URL_REGEX = re.compile(r".*/([^/]+/[^/]+)/pulls/(\d+)(?:$|[/?#])")
 
 
@@ -70,6 +77,7 @@ def parse_pr_url(url: str) -> tuple[str, int] | None:
     return match.group(1), int(match.group(2))
 
 
+# Update or create a specific tag-marked comment on a Gitea PR
 def update_pr_comment(url: str, msg: str, token: dict[str, str], *, dry: bool = False) -> None:
     """Update or create a comment on a Gitea PR with a specific tag."""
     if not (res := parse_pr_url(url)):
@@ -109,6 +117,7 @@ def update_pr_comment(url: str, msg: str, token: dict[str, str], *, dry: bool = 
         log.info("Dry run: Would create new comment for %s PR %s", repo_name, pr_number)
 
 
+# Fetch JSON data from the Gitea API using retried requests
 def get_json(query: str, token: dict[str, str], host: str | None = None) -> Any:  # noqa: ANN401
     """Fetch JSON data from Gitea API."""
     host = host or config.settings.gitea_url
@@ -182,12 +191,14 @@ def get_product_name(obs_project: str) -> str:
     return product_match.group(1) if product_match else ""
 
 
+# Extract the Sle product name from an OBS project name
 def get_product_name_and_version_from_scmsync(scmsync_url: str) -> tuple[str, str]:
     """Extract product name and version from an scmsync URL."""
     m = SCMSYNC_REGEX.search(scmsync_url)
     return (m.group(1), m.group(2)) if m else ("", "")
 
 
+# Build a comma-separated list of repository URLs for job settings
 def compute_repo_url_for_job_setting(
     base: str,
     repo: Repos,
@@ -202,6 +213,7 @@ def compute_repo_url_for_job_setting(
     return ",".join(repo_with_opts.compute_url(base, p, path="", project="SLFO") for p in product_list)
 
 
+# Retrieve all currently open pull requests for a given repository
 def get_open_prs(token: dict[str, str], repo: str, *, dry: bool, number: int | None) -> list[Any]:
     """Fetch open PRs from a Gitea repository."""
     log.debug("Fetching open PRs from '%s'%s", repo, ", dry-run" if dry else "")
@@ -219,12 +231,6 @@ def get_open_prs(token: dict[str, str], repo: str, *, dry: bool, number: int | N
         return [pr]
 
     def iter_pr_pages() -> Any:  # noqa: ANN401
-        """Iterate through all pages of open PRs.
-
-        Yields:
-            Lists of open PRs.
-
-        """
         page = 1
         while True:
             # https://docs.gitea.com/api/1.20/#tag/repository/operation/repolistPullRequests
@@ -244,6 +250,7 @@ def get_open_prs(token: dict[str, str], repo: str, *, dry: bool, number: int | N
         return []
 
 
+# Post a review status (approval/rejection) or a comment to a PR
 def review_pr(  # noqa: PLR0913
     token: dict[str, str],
     repo_name: str,
@@ -254,7 +261,7 @@ def review_pr(  # noqa: PLR0913
     approve: bool = True,
     dry: bool = False,
 ) -> None:
-    """Post a review or comment on a Gitea PR."""
+    """Post a review status or a comment to a Gitea PR."""
     if config.settings.git_review_bot_user:
         review_url = comments_url(repo_name, pr_number)
         review_cmd = f"@{config.settings.git_review_bot_user}: "
@@ -300,6 +307,7 @@ def is_review_requested_by(
     return any(user in user_specifications for user in users)
 
 
+# Aggregate PR reviews and determine the submission status
 def add_reviews(submission: dict[str, Any], reviews: list[Any]) -> int:
     """Process PR reviews and update submission status.
 
@@ -319,7 +327,6 @@ def add_reviews(submission: dict[str, Any], reviews: list[Any]) -> int:
 
 
 def _extract_version(name: str, prefix: str) -> str:
-    """Extract version number from a package name string."""
     remainder = name.removeprefix(prefix)
     return next((part for part in remainder.split("-") if VERSION_EXTRACT_REGEX.search(part)), "")
 
@@ -445,7 +452,7 @@ def get_multibuild_data(obs_project: str) -> str:
 
 
 def determine_relevant_archs_from_multibuild_info(obs_project: str, *, dry: bool) -> set[str] | None:
-    """Determine which architectures are relevant for a product based on multibuild data."""
+    """Determine relevant architectures for a product."""
     # retrieve the _multibuild info like `osc cat SUSE:SLFO:1.1.99:PullRequest:124:SLES 000productcompose _multibuild`
     product_name = get_product_name(obs_project)
     if not product_name:
@@ -503,7 +510,6 @@ def _process_obs_url(
     dry: bool,
     results: BuildResults,
 ) -> None:
-    """Process an OBS URL and update submission build results."""
     if not (project_match := OBS_PROJECT_SHOW_REGEX.search(url)):
         return
     obs_project = project_match.group(1)
@@ -515,8 +521,9 @@ def _process_obs_url(
             add_build_result(submission, res, results)
 
 
+# Aggregate build results from multiple OBS URLs into a submission
 def add_build_results(submission: dict[str, Any], obs_urls: list[str], *, dry: bool) -> None:
-    """Aggregate build results from multiple OBS URLs into a submission."""
+    """Aggregate build results from OBS URLs."""
     results = BuildResults()
 
     for url in obs_urls:
@@ -557,7 +564,7 @@ def add_comments_and_referenced_build_results(
     *,
     dry: bool,
 ) -> None:
-    """Find and process build result URLs from bot comments on a PR."""
+    """Find and process build result URLs from bot comments."""
     bot_comments = [
         comment for comment in comments if comment["user"]["username"] == config.settings.git_obs_staging_bot_user
     ]
@@ -604,7 +611,7 @@ def add_packages_from_patchinfo(
     *,
     dry: bool,
 ) -> None:
-    """Extract package names from a _patchinfo file URL."""
+    """Extract package names from a _patchinfo file."""
     if dry:
         patch_info = read_xml("patch-info")
     else:
@@ -629,7 +636,7 @@ def add_packages_from_files(submission: dict[str, Any], token: dict[str, str], f
 
 
 def is_build_acceptable_and_log_if_not(submission: dict[str, Any], number: int) -> bool:
-    """Check if all packages in a submission have been built and published successfully."""
+    """Check if all packages in a submission have been built successfully."""
     failed_or_unpublished_packages = len(submission["failed_or_unpublished_packages"])
     if failed_or_unpublished_packages > 0:
         log.info("Skipping PR git:%i: Not all packages succeeded or published", number)
@@ -716,8 +723,6 @@ def get_submissions_from_open_prs(
     dry: bool,
 ) -> list[dict[str, Any]]:
     """Convert a list of open Gitea PRs into dashboard submissions."""
-    submissions = []
-
     # configure osc to be able to request build info from OBS
     osc.conf.get_config(override_apiurl=config.settings.obs_url)
 
