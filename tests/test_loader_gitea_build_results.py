@@ -38,7 +38,7 @@ def test_add_build_results_url_mismatch_just_passes() -> None:
 
 def test_add_build_results_http_error(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level(logging.INFO, logger="bot.loader.gitea")
-    mocker.patch("openqabot.loader.gitea.determine_relevant_archs_from_multibuild_info", return_value=None)
+    mocker.patch("openqabot.loader.gitea._determine_relevant_archs_from_multibuild_info", return_value=None)
     err = urllib.error.HTTPError("url", 404, "msg", cast("Any", {}), None)
     mocker.patch("openqabot.loader.gitea.http_GET", side_effect=err)
     incident = {"number": 123}
@@ -80,7 +80,7 @@ def test_add_build_result_published(mocker: MockerFixture) -> None:
 
 def test_add_build_results_failed_packages(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level(logging.INFO, logger="bot.loader.gitea")
-    mocker.patch("openqabot.loader.gitea.determine_relevant_archs_from_multibuild_info", return_value=None)
+    mocker.patch("openqabot.loader.gitea._determine_relevant_archs_from_multibuild_info", return_value=None)
     mocker.patch("openqabot.config.settings.obs_repo_type", None)
     mocker.patch("openqabot.loader.gitea._get_product_version_from_repo_listing", return_value="15.4")
     xml_data = """
@@ -105,7 +105,7 @@ def test_is_build_result_relevant_repo_match(mocker: MockerFixture) -> None:
 
 
 def test_add_build_results_dry_124(mocker: MockerFixture) -> None:
-    mocker.patch("openqabot.loader.gitea.determine_relevant_archs_from_multibuild_info", return_value=None)
+    mocker.patch("openqabot.loader.gitea._determine_relevant_archs_from_multibuild_info", return_value=None)
     mock_read_xml = mocker.patch("openqabot.loader.gitea._read_xml")
     mock_read_xml.return_value.getroot.return_value.findall.return_value = []
     incident = {"number": 124}
@@ -114,7 +114,7 @@ def test_add_build_results_dry_124(mocker: MockerFixture) -> None:
 
 
 def test_add_build_results_scminfo(mocker: MockerFixture) -> None:
-    mocker.patch("openqabot.loader.gitea.determine_relevant_archs_from_multibuild_info", return_value=None)
+    mocker.patch("openqabot.loader.gitea._determine_relevant_archs_from_multibuild_info", return_value=None)
     mocker.patch("openqabot.config.settings.obs_products", "SLES")
     mock_read_xml = mocker.patch("openqabot.loader.gitea._read_xml")
     mock_read_xml.return_value.getroot.return_value.findall.return_value = []
@@ -124,7 +124,7 @@ def test_add_build_results_scminfo(mocker: MockerFixture) -> None:
 
 
 def test_add_build_results_duplicate_channels(mocker: MockerFixture) -> None:
-    mocker.patch("openqabot.loader.gitea.determine_relevant_archs_from_multibuild_info", return_value=None)
+    mocker.patch("openqabot.loader.gitea._determine_relevant_archs_from_multibuild_info", return_value=None)
     mocker.patch("openqabot.loader.gitea.get_product_name", return_value="SLES")
 
     def mock_add_channel(_project: str, _arch: str, _product: str, _res: Any, projects: set[str]) -> str:
@@ -166,7 +166,7 @@ def test_add_comments_multiple_bot_comments(mocker: MockerFixture) -> None:
         },
     ]
 
-    # We want to check if add_build_results is called with BOTH URLs.
+    # We want to check if _add_build_results is called with BOTH URLs.
     mock_add_build_results = mocker.patch("openqabot.loader.gitea._add_build_results")
 
     gitea._add_comments_and_referenced_build_results(submission, comments, dry=True)

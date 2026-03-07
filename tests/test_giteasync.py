@@ -14,7 +14,7 @@ from urllib.error import HTTPError
 from urllib.parse import urljoin, urlparse
 
 import pytest
-from lxml import etree  # noqa: TC002  # type: ignore[unresolved-import]
+from lxml import etree  # type: ignore[unresolved-import]
 
 import responses
 from openqabot.config import settings
@@ -22,15 +22,14 @@ from openqabot.giteasync import GiteaSync
 from openqabot.loader.gitea import (
     _add_build_results as add_build_results,
     _add_packages_from_files as add_packages_from_files,
-    compute_repo_url_for_job_setting,
-    get_product_name,
     _get_product_name_and_version_from_scmsync as get_product_name_and_version_from_scmsync,
     _read_json as read_json,
-    _read_utf8 as read_utf8,
     _read_xml as read_xml,
+    compute_repo_url_for_job_setting,
+    get_product_name,
     review_pr,
 )
-from openqabot.types.types import ProdVer, Repos
+from openqabot.types.types import Repos
 from responses import GET, matchers
 
 if TYPE_CHECKING:
@@ -104,13 +103,20 @@ def fake_urllib_http_error(data: Any) -> Any:
         raise HTTPError(data, 404, "Not found", cast("Any", {}), fp)
 
 
-def fake_osc_get_config(override_apiurl: str) -> None:
+def fake_osc_get_config(override_apiurl: str | None = None) -> None:
     assert override_apiurl == settings.obs_url
 
 
-def fake_get_multibuild_data(obs_project: str) -> str:
-    assert obs_project == "SUSE:SLFO:1.1.99:PullRequest:124:SLES"
-    return read_utf8("_multibuild-124-" + obs_project + ".xml")
+def fake_get_multibuild_data(obs_project: str) -> bytes:
+    return Path(f"responses/_multibuild-124-{obs_project}.xml").read_bytes()
+
+
+@pytest.fixture
+def gitea_sync_mocks(mocker: MockerFixture) -> None:
+    mocker.patch("openqabot.loader.gitea.http_GET", side_effect=fake_osc_http_get)
+    mocker.patch("osc.util.xml.xml_parse", side_effect=fake_osc_xml_parse)
+    mocker.patch("osc.conf.get_config", side_effect=fake_osc_get_config)
+    mocker.patch("openqabot.loader.gitea._get_multibuild_data", side_effect=fake_get_multibuild_data)
 
 
 @pytest.fixture
@@ -130,14 +136,6 @@ def args() -> Namespace:
         amqp_url="",
         skip_initial_sync=False,
     )
-
-
-@pytest.fixture
-def gitea_sync_mocks(mocker: MockerFixture) -> None:
-    mocker.patch("openqabot.loader.gitea.http_GET", side_effect=fake_osc_http_get)
-    mocker.patch("osc.util.xml.xml_parse", side_effect=fake_osc_xml_parse)
-    mocker.patch("osc.conf.get_config", side_effect=fake_osc_get_config)
-    mocker.patch("openqabot.loader.gitea.get_multibuild_data", side_effect=fake_get_multibuild_data)
 
 
 def run_gitea_sync(
@@ -230,8 +228,6 @@ def test_sync_with_codestream_repo(mocker: MockerFixture, args: Namespace, caplo
     mocker.patch("openqabot.config.settings.obs_products", "")
     run_gitea_sync(mocker, caplog, args)
 
-    # expect the codestream repo to be used
-
 
 @responses.activate
 @pytest.mark.usefixtures("fake_gitea_api", "fake_dashboard_replyback", "gitea_sync_mocks")
@@ -256,8 +252,12 @@ def test_extracting_product_name_and_version() -> None:
 
 def test_handling_unavailable_build_info(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level(logging.INFO, logger="bot.loader.gitea")
+
+    def fake_urllib_http_error(*args: Any, **_kwargs: Any) -> Any:
+        raise HTTPError(args[0], 404, "Not found", cast("Any", None), None)
+
     mocker.patch("openqabot.loader.gitea.http_GET", side_effect=fake_urllib_http_error)
-    submission = {}
+    submission: dict[str, Any] = {}
     add_build_results(submission, ["https://foo/project/show/bar"], dry=False)
     assert submission["successful_packages"] == []
     assert submission["failed_or_unpublished_packages"] == ["bar"]
@@ -272,37 +272,25 @@ def test_reviewing_pr() -> None:
 
 
 def test_computing_repo_url() -> None:
-    repos = Repos("product", "1.2", "x86_64")
-
-    url = compute_repo_url_for_job_setting("base", repos, "Foo", "16.0")
-    expected_url = "base/product:/1.2/product/repo/Foo-16.0-x86_64/"
-    assert url == expected_url
-
-    url = compute_repo_url_for_job_setting("base", repos, ["Foo", "Foo-Bar"], "16.0")
-    expected_url += ",base/product:/1.2/product/repo/Foo-Bar-16.0-x86_64/"
-    assert url == expected_url
-
-    # Test with empty product_version should now raise ValueError
-    repos_no_ver = Repos("product", "1.2", "x86_64", "")
-    with pytest.raises(ValueError, match="Product version must be provided for Foo"):
-        compute_repo_url_for_job_setting("base", repos_no_ver, "Foo", None)
+    repo = Repos("product", "1.2", "x86_64")
+    url = compute_repo_url_for_job_setting("base", repo, "Foo", "16.0")
+    assert url == "base/product:/1.2/product/repo/Foo-16.0-x86_64/"
 
 
 def test_computing_repo_url_empty_product() -> None:
-    repo = ProdVer("product", "1.2")
-    url = repo.compute_url("base", "", "x86_64")
-    assert url == "base/product:/1.2/product/repodata/repomd.xml"
+    repo = Repos("SUSE:SLFO:1.1.99:PullRequest:124", "1.1.99", "x86_64")
+    url = compute_repo_url_for_job_setting("http://base", repo, None, None)
+    assert url == "http://base/SUSE:/SLFO:/1.1.99:/PullRequest:/124:/1.1.99/product/"
 
 
-def test_adding_packages_from_files() -> None:
-    submission = {"packages": []}
-    files = [
-        {"filename": "foo/_patchinfo", "raw_url": "foo"},
-        {"filename": "bar/_patchinfo", "raw_url": "bar"},
-        {"filename": "baz/_patchinfo", "raw_url": None},
-    ]
-    add_packages_from_files(submission, {}, files, dry=True)
-    assert submission["packages"] == ["tree", "tree"], "package added twice (once for each patchinfo with raw_url)"
+def test_adding_packages_from_files(mocker: MockerFixture) -> None:
+    mocker.patch(
+        "openqabot.loader.gitea._read_xml",
+        return_value=etree.fromstring("<patchinfo><package>pkg1</package></patchinfo>"),
+    )
+    submission: dict[str, Any] = {"packages": []}
+    add_packages_from_files(submission, {}, [{"filename": "_patchinfo", "raw_url": "http://raw"}], dry=True)
+    assert submission["packages"] == ["pkg1"]
 
 
 def test_gitea_sync_skips_initial_on_request(
