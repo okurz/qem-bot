@@ -160,12 +160,17 @@ class Approver:
             log.error("Submission %s has no URL", sub.sub)
             return
 
+        s_jobs = []
         try:
             s_jobs = get_submission_results(sub.sub, self.token, submission_type=sub.type)
+        except (ValueError, NoResultsError) as e:
+            log.debug("No submission results for %s: %s", sub.sub, e)
+
+        a_jobs = []
+        try:
             a_jobs = get_aggregate_results(sub.sub, self.token, submission_type=sub.type)
         except (ValueError, NoResultsError) as e:
-            log.debug("No results for %s: %s", sub.sub, e)
-            return
+            log.debug("No aggregate results for %s: %s", sub.sub, e)
 
         all_jobs = s_jobs + a_jobs
         if not all_jobs:
@@ -177,6 +182,7 @@ class Approver:
             return
 
         msg = summarize_message(self.client, all_jobs)
+
         if not msg:
             log.debug("Skipping empty comment for %s", sub.sub)
             return
