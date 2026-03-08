@@ -45,19 +45,16 @@ class Submissions(BaseConf):
     """Submissions job configuration and processing."""
 
     def __init__(self, config: JobConfig, extrasettings: set[str]) -> None:
-        """Initialize the Submissions class."""
         super().__init__(config)
         self.flavors = self.normalize_repos(config.config["FLAVOR"])
         self.singlearch = extrasettings
         self.valid_archs = {arch for data in self.flavors.values() for arch in data["archs"]}
 
     def __repr__(self) -> str:
-        """Return a string representation of the Submissions."""
         return f"<Submissions product: {self.product}>"
 
     @staticmethod
     def normalize_repos(config: dict[str, Any]) -> dict[str, Any]:
-        """Normalize repository configuration from settings."""
         return {
             flavor: {
                 key: (
@@ -72,7 +69,6 @@ class Submissions(BaseConf):
 
     @staticmethod
     def repo_osuse(chan: Repos) -> tuple[str, str, str] | tuple[str, str]:
-        """Return repository components for openSUSE or other products."""
         if chan.product == "openSUSE-SLE":
             return chan.product, chan.version
         return chan.product, chan.version, chan.arch
@@ -81,22 +77,19 @@ class Submissions(BaseConf):
     def _get_scheduled_jobs(
         token: dict[str, str], sub_id: int, submission_type: str | None = None
     ) -> list[dict[str, Any]]:
-        """Fetch scheduled jobs from the dashboard."""
         try:
             url = f"{settings.qem_dashboard_url}api/incident_settings/{sub_id}"
             params = {"type": submission_type} if submission_type else {}
             res = retried_requests.get(url, headers=token, params=params).json()
             return res if isinstance(res, list) else []
         except (requests.exceptions.RequestException, json.JSONDecodeError):
-            log.exception("Dashboard API error: Could not retrieve scheduled jobs for submission %s", sub_id)
+            log.exception("Dashboard API error for submission %s", sub_id)
             return []
 
     @staticmethod
     def is_scheduled_job(token: dict[str, str], ctx: SubContext, ver: str, submission_type: str | None = None) -> bool:
-        """Check if a job is already scheduled in the dashboard."""
         if not (revs := ctx.sub.revisions_with_fallback(ctx.arch, ver)):
             return False
-
         jobs = Submissions._get_scheduled_jobs(token, ctx.sub.id, submission_type)
         return any(
             job["flavor"] == ctx.flavor
@@ -107,7 +100,6 @@ class Submissions(BaseConf):
         )
 
     def make_repo_url(self, sub: Submission, chan: Repos) -> str:
-        """Construct the repository URL for a submission channel."""
         return (
             gitea.compute_repo_url_for_job_setting(
                 settings.download_base_url, chan, self.product_repo, self.product_version
@@ -154,10 +146,8 @@ class Submissions(BaseConf):
         return bool("required_issues" in data and set(matches).isdisjoint(data["required_issues"]))
 
     def _is_kernel_missing_repo(self, sub: Submission, flavor: str, matches: dict[str, list[Repos]]) -> bool:
-        """Check if a Kernel submission is missing its product repository."""
         if "Kernel" not in flavor or sub.livepatch or flavor.endswith("Azure"):
             return False
-
         allowed = {"OS_TEST_ISSUES", "LTSS_TEST_ISSUES", "BASE_TEST_ISSUES", "RT_TEST_ISSUES", "COCO_TEST_ISSUES"}
         if set(matches).isdisjoint(allowed):
             log.warning("Submission %s skipped: Kernel submission missing product repository", sub)
@@ -165,23 +155,18 @@ class Submissions(BaseConf):
         return False
 
     def should_skip(self, ctx: SubContext, cfg: SubConfig, matches: dict[str, list[Repos]]) -> bool:
-        """Check if a submission context should be skipped."""
         if self._is_invalid_status(ctx.sub, ctx.arch, ctx.flavor):
             return True
-
         if self._is_invalid_package_or_channel(ctx, matches):
             return True
-
         if not cfg.ignore_onetime and self.is_scheduled_job(
             cfg.token, ctx, self.settings["VERSION"], submission_type=ctx.sub.type
         ):
             log.info("Submission %s already scheduled for %s on %s", ctx.sub, ctx.flavor, ctx.arch)
             return True
-
         return self._is_kernel_missing_repo(ctx.sub, ctx.flavor, matches)
 
     def get_base_settings(self, ctx: SubContext, revs: int, cfg: SubConfig) -> dict[str, Any]:
-        """Return base openQA settings for a submission."""
         sub, arch, flavor = ctx.sub, ctx.arch, ctx.flavor
         return {
             **self.settings,
@@ -199,7 +184,6 @@ class Submissions(BaseConf):
         }
 
     def get_priority(self, ctx: SubContext) -> int | None:  # noqa: PLR6301
-        """Calculate job priority for a submission."""
         sub, flavor, data = ctx.sub, ctx.flavor, ctx.data
         if delta_prio := data.get("override_priority", 0):
             delta_prio -= 50
@@ -212,7 +196,6 @@ class Submissions(BaseConf):
         return settings.base_prio + delta_prio if delta_prio else None
 
     def apply_params_expand(self, settings: dict[str, Any], data: dict[str, Any], flavor: str) -> bool:  # noqa: PLR6301
-        """Apply 'params_expand' settings from metadata."""
         if "params_expand" not in data:
             return True
         params = data["params_expand"]
@@ -223,7 +206,6 @@ class Submissions(BaseConf):
         return True
 
     def add_metadata_urls(self, settings_data: dict[str, Any], sub: Submission) -> None:  # noqa: PLR6301
-        """Add source and dashboard URLs to settings."""
         url = (
             f"{settings.gitea_url}/products/{sub.project}/pulls/{sub.id}"
             if get_channel_type(sub.project) == ChannelType.SLFO
@@ -233,7 +215,6 @@ class Submissions(BaseConf):
         settings_data["__DASHBOARD_INCIDENT_URL"] = f"{settings.qem_dashboard_url}incident/{sub.id}"
 
     def apply_pc_images(self, settings: dict[str, Any]) -> dict[str, Any] | None:  # noqa: PLR6301
-        """Apply Public Cloud tools and PINT images to settings."""
         if "PUBLIC_CLOUD_TOOLS_IMAGE_QUERY" in settings:
             settings = apply_pc_tools_image(settings)
             if not settings.get("PUBLIC_CLOUD_TOOLS_IMAGE_BASE"):
@@ -245,7 +226,6 @@ class Submissions(BaseConf):
         return settings
 
     def is_aggregate_needed(self, ctx: SubContext, openqa_keys: set[str]) -> bool:
-        """Check if an aggregate job is needed for this submission."""
         sub, data = ctx.sub, ctx.data
         if not self.singlearch.isdisjoint(set(sub.packages)):
             return False
@@ -258,7 +238,6 @@ class Submissions(BaseConf):
         return bool(neg and pos)
 
     def _get_incident_repo_url(self, sub: Submission, matches: dict[str, list[Repos]], version: str) -> str:
-        """Construct the comma-separated incident repo URL string."""
         all_repos = {c for matched in matches.values() for c in matched}
         repos = {c for c in all_repos if c.product_version == version} or all_repos
         return ",".join(sorted(self.make_repo_url(sub, chan) for chan in repos))
@@ -269,20 +248,15 @@ class Submissions(BaseConf):
         settings = self.get_base_settings(ctx, revs, cfg)
         for issue in matches:
             settings[issue] = str(ctx.sub.id)
-
         settings["INCIDENT_REPO"] = self._get_incident_repo_url(ctx.sub, matches, version)
-
         if prio := self.get_priority(ctx):
             settings["_PRIORITY"] = prio
-
         if not self.apply_params_expand(settings, ctx.data, ctx.flavor):
             return None
-
         self.add_metadata_urls(settings, ctx.sub)
         return self.apply_pc_images(settings)
 
     def handle_submission(self, ctx: SubContext, cfg: SubConfig) -> dict[str, Any] | None:
-        """Process a submission context and return dashboard post data."""
         matches = {
             issue: matched
             for issue, channel in ctx.data.get("issues", {}).items()
@@ -290,20 +264,16 @@ class Submissions(BaseConf):
         }
         if self.should_skip(ctx, cfg, matches):
             return None
-
         version = self.product_version or self.settings["VERSION"]
         if not ctx.sub.compute_revisions_for_product_repo(
             self.product_repo, self.product_version, limit_archs=self.valid_archs
         ):
             return None
-
         if not (revs := ctx.sub.revisions_with_fallback(ctx.arch, version)):
             return None
-
         settings = self._prepare_settings(ctx, cfg, matches, version, revs)
         if not settings:
             return None
-
         return {
             "api": "api/incident_settings",
             "qem": {
@@ -319,24 +289,15 @@ class Submissions(BaseConf):
         }
 
     def process_sub_context(self, ctx: SubContext, cfg: SubConfig) -> dict[str, Any] | None:
-        """Process a single submission context."""
         return self.handle_submission(ctx, cfg)
 
     def __call__(
-        self,
-        submissions: list[Submission],
-        token: dict[str, str],
-        ci_url: str | None,
-        *,
-        ignore_onetime: bool,
+        self, submissions: list[Submission], token: dict[str, str], ci_url: str | None, *, ignore_onetime: bool
     ) -> list[dict[str, Any]]:
-        """Process all submissions and return a list of posts for the dashboard."""
         cfg = SubConfig(token=token, ci_url=ci_url, ignore_onetime=ignore_onetime)
-
         active = [
             s for s in submissions if s.compute_revisions_for_product_repo(self.product_repo, self.product_version)
         ]
-
         return [
             r
             for flavor, data in self.flavors.items()
