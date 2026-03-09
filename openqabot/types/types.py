@@ -39,7 +39,7 @@ class Repos(NamedTuple):
     product: str
     version: str  # for SLFO it is the OBS project name; for others it is the product version
     arch: str
-    product_version: str = ""  # if non-empty, "version" is the codestream version or OBS project
+    product_version: str = ""
 
     def compute_url(
         self,

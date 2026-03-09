@@ -74,3 +74,17 @@ def test_repos_compute_url_updates_with_project() -> None:
     repo = Repos("SLES", "15-SP3", "x86_64")
     url = repo.compute_url("base", path="repomd.xml", project="SUSE:Maintenance:12345")
     assert url == "base/SUSE:/Maintenance:/12345/SUSE_Updates_SLES_15-SP3_x86_64/repomd.xml"
+
+
+def test_repos_slfo_missing_product_version() -> None:
+    """Test compute_url for SLFO with missing product version."""
+    repo = Repos("SUSE:SLFO", "1.2", "x86_64", product_version="")
+    with pytest.raises(ValueError, match="Product version must be provided"):
+        repo.compute_url("base", product_name="Foo")
+
+
+def test_prodver_compute_url() -> None:
+    """Test ProdVer.compute_url delegates to Repos."""
+    pv = ProdVer("SLFO", "project", "version")
+    url = pv.compute_url("base", "Foo", "x86_64", path="repomd.xml")
+    assert "base/SLFO:/project/product/repo/Foo-version-x86_64/repomd.xml" in url

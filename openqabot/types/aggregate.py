@@ -106,7 +106,7 @@ class Aggregate(BaseConf):
         return test_submissions, test_repos
 
     def _get_repo_url(self, sub: Submission, issue: str, issues_arch: str) -> str:
-        """Construct the repository URL for a submission."""
+        """Construct the repository URL for a submission logic."""
         product = self.test_issues[issue].product
         version = self.test_issues[issue].version
         base_url = f"{config.settings.download_maintenance}{sub.id}/SUSE_Updates_{product}_{version}"

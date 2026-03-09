@@ -202,11 +202,15 @@ class Submission:
             repos_to_check = lrepos
             if get_channel_type(project) == ChannelType.SLFO and options.product_name:
                 filtered_repos = [
-                    r for r in lrepos if options.product_name.startswith(gitea.get_product_name(r.version))
+                    r
+                    for r in lrepos
+                    if get_channel_type(r.product) == ChannelType.SLFO
+                    and options.product_name.startswith(gitea.get_product_name(r.version))
                 ]
-                if not filtered_repos:
+                if filtered_repos:
+                    repos_to_check = filtered_repos
+                elif any(get_channel_type(r.product) == ChannelType.SLFO for r in lrepos):
                     continue
-                repos_to_check = filtered_repos
 
             max_rev = get_max_revision(repos_to_check, archver.arch, project, options)
             if max_rev > 0:
