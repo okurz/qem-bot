@@ -6,9 +6,9 @@ from __future__ import annotations
 
 import logging
 import sys
+from argparse import Namespace
 from pathlib import Path
-from types import SimpleNamespace
-from typing import Annotated
+from typing import Annotated, Optional
 from urllib.parse import urlparse
 
 import typer
@@ -39,7 +39,7 @@ app = typer.Typer(
 log = logging.getLogger("bot")
 
 pr_number_arg = Annotated[
-    int | None,
+    Optional[int],
     typer.Option(
         "--pr-number",
         help="Only consider the specified PR (for manual debugging)",
@@ -57,7 +57,7 @@ comment_option = Annotated[
 ]
 
 
-def _require_token(args: SimpleNamespace) -> None:
+def _require_token(args: Namespace) -> None:
     """Enforce that a qem-dashboard token is present before entering a command.
 
     Call this guard at the start of every command that does need the dashboard.
@@ -80,8 +80,9 @@ def main(  # noqa: PLR0913
             "-c",
             "--configs",
             envvar="QEM_BOT_CONFIGS",
-            help="Directory or single file with openqabot configuration metadata",
-            file_okay=True,
+            help="Directory with openqabot configuration metadata",
+            exists=True,
+            file_okay=False,
             dir_okay=True,
             readable=True,
         ),
@@ -147,7 +148,7 @@ def main(  # noqa: PLR0913
         sys.exit(1)
 
     # Store global options in context
-    ctx.obj = SimpleNamespace(
+    ctx.obj = Namespace(
         configs=configs,
         dry=dry,
         fake_data=fake_data,
@@ -179,7 +180,7 @@ def full_run(
     ] = None,
 ) -> None:
     """Full schedule for Maintenance Submissions in openQA."""
-    args = ctx.obj
+    args = Namespace(**vars(ctx.obj))
     _require_token(args)
     args.ignore_onetime = ignore_onetime
     args.submission = submission
@@ -208,7 +209,7 @@ def submissions_run(
     ] = None,
 ) -> None:
     """Submissions only schedule for Maintenance Submissions in openQA."""
-    args = ctx.obj
+    args = Namespace(**vars(ctx.obj))
     _require_token(args)
     args.ignore_onetime = ignore_onetime
     args.submission = submission
@@ -250,7 +251,7 @@ def updates_run(
     ] = False,
 ) -> None:
     """Aggregates only schedule for Maintenance Submissions in openQA."""  # noqa: D401
-    args = ctx.obj
+    args = Namespace(**vars(ctx.obj))
     _require_token(args)
     args.ignore_onetime = ignore_onetime
     args.disable_aggregates = False
@@ -263,7 +264,7 @@ def updates_run(
 @app.command("smelt-sync")
 def smelt_sync(ctx: typer.Context) -> None:
     """Sync data from SMELT into QEM Dashboard."""
-    args = ctx.obj
+    args = Namespace(**vars(ctx.obj))
     _require_token(args)
 
     syncer = SMELTSync(args)
@@ -304,7 +305,7 @@ def gitea_sync(  # noqa: PLR0913
     ] = False,
 ) -> None:
     """Sync data from Gitea into QEM Dashboard."""
-    args = ctx.obj
+    args = Namespace(**vars(ctx.obj))
     _require_token(args)
     args.gitea_repo = gitea_repo
     args.allow_build_failures = allow_build_failures
@@ -359,7 +360,7 @@ def sub_approve(
     comment: comment_option = False,
 ) -> None:
     """Approve submissions which passed tests."""
-    args = ctx.obj
+    args = Namespace(**vars(ctx.obj))
     _require_token(args)
     args.all_submissions = all_submissions
     args.submission = submission
@@ -395,7 +396,7 @@ def inc_approve(
 @app.command("sub-comment")
 def sub_comment(ctx: typer.Context) -> None:
     """Comment submissions in BuildService."""
-    args = ctx.obj
+    args = Namespace(**vars(ctx.obj))
     _require_token(args)
 
     token = {"Authorization": f"Token {args.token}"}
@@ -413,7 +414,7 @@ def inc_comment(ctx: typer.Context) -> None:
 @app.command("sub-sync-results")
 def sub_sync_results(ctx: typer.Context) -> None:
     """Sync results of openQA submission jobs to Dashboard."""
-    args = ctx.obj
+    args = Namespace(**vars(ctx.obj))
     _require_token(args)
 
     syncer = SubResultsSync(args)
@@ -429,7 +430,7 @@ def inc_sync_results(ctx: typer.Context) -> None:
 @app.command("aggr-sync-results")
 def aggr_sync_results(ctx: typer.Context) -> None:
     """Sync results of openQA aggregate jobs to Dashboard."""
-    args = ctx.obj
+    args = Namespace(**vars(ctx.obj))
     _require_token(args)
 
     syncer = AggregateResultsSync(args)
@@ -530,7 +531,7 @@ def increment_approve(  # noqa: PLR0913
     ] = None,
 ) -> None:
     """Approve the most recent product increment for an OBS project if tests passed."""
-    args = ctx.obj
+    args = Namespace(**vars(ctx.obj))
     _require_token(args)
     args.project_base = project_base
     args.build_project_suffix = build_project_suffix
@@ -563,7 +564,7 @@ def repo_diff(
     ] = "SUSE:SLFO:Products:SLES:16.0:PUBLISH/product",
 ) -> None:
     """Computes the diff between two repositories."""  # noqa: D401
-    args = ctx.obj
+    args = Namespace(**vars(ctx.obj))
     args.repo_a = repo_a
     args.repo_b = repo_b
 
@@ -578,12 +579,11 @@ def amqp_cmd(
     url: Annotated[str | None, typer.Option("--url", help="the URL of the AMQP server")] = None,
 ) -> None:
     """AMQP listener daemon."""
-    args = ctx.obj
+    args = Namespace(**vars(ctx.obj))
     _require_token(args)
     if url is not None:
         args.url = url
     else:
-        # Default from settings (which was already loaded in main callback)
         args.url = config_module.settings.amqp_url
 
     amqp_obj = AMQP(args)
