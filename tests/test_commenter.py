@@ -507,6 +507,19 @@ def test_gitea_comment_similar_exists(
 
 
 @pytest.mark.usefixtures("commenter_setup")
+def test_gitea_comment_unexpected_response(
+    mock_args: Namespace,
+    mock_git_sub: MagicMock,
+    commenter_setup: dict[str, MagicMock],
+) -> None:
+    mock_gitea = commenter_setup["gitea"]
+    mock_gitea.get_json.return_value = {"message": "Not Found"}
+    c = Commenter(mock_args)
+    with pytest.raises(TypeError, match="Expected a list of comments from Gitea API, got dict"):
+        c.gitea_comment(mock_git_sub, "Test message", "passed")
+
+
+@pytest.mark.usefixtures("commenter_setup")
 def test_commenter_call_empty_msg(
     mocker: MockerFixture,
     mock_args: Namespace,

@@ -99,3 +99,9 @@ def test_is_review_requested_by_explicit_users() -> None:
     review = {"user": {"login": "user1"}}
     assert gitea.is_review_requested_by(review, users=("user1",))
     assert not gitea.is_review_requested_by(review, users=("user2",))
+
+
+def test_fetch_details_unexpected_response(mocker: MockerFixture) -> None:
+    mocker.patch("openqabot.loader.gitea.get_json", side_effect=[[], {}, []])
+    with pytest.raises(TypeError, match="Expected list responses from Gitea API for PR 123"):
+        gitea._fetch_details("repo", 123, {}, dry=False)  # noqa: SLF001

@@ -150,10 +150,14 @@ class Commenter:
 
         bot_name = "openqa"
         info = {"state": state}
-        # Add a marker so we can find our own comments later
         msg = self.commentapi.add_marker(msg, bot_name, info)
 
-        comments = gitea.get_json_list(gitea.comments_url(repo, sub.id), self.gitea_token)
+        res = gitea.get_json(gitea.comments_url(repo, sub.id), self.gitea_token)
+        if not isinstance(res, list):
+            error_msg = f"Expected a list of comments from Gitea API, got {type(res).__name__}"
+            raise TypeError(error_msg)
+        comments = res
+
         # Convert Gitea comments to CommentAPI format
         formatted_comments = {str(c["id"]): {"id": c["id"], "comment": c["body"]} for c in comments}
 

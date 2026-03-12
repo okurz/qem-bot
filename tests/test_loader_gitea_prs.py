@@ -12,7 +12,7 @@ from openqabot.loader import gitea
 
 
 def test_get_open_prs_returns_empty_on_dry_run(mocker: MockerFixture) -> None:
-    mocker.patch("openqabot.loader.gitea.read_json_file_list", return_value=[42])
+    mocker.patch("openqabot.loader.gitea.read_json_file", return_value=[42])
     assert gitea.get_open_prs({}, "repo", fake_data=True, number=None) == [42]
 
 
@@ -28,6 +28,12 @@ def test_get_open_prs_metadata_error(mocker: MockerFixture, caplog: pytest.LogCa
     res = gitea.get_open_prs({}, "repo", fake_data=False, number=124)
     assert res == []
     assert "PR git:124 ignored: Could not read PR metadata" in caplog.text
+
+
+def test_get_open_prs_dry_unexpected_response(mocker: MockerFixture) -> None:
+    mocker.patch("openqabot.loader.gitea.read_json_file", return_value={"message": "error"})
+    with pytest.raises(TypeError, match=r"Expected a list from read_json_file\('pulls'\), got dict"):
+        gitea.get_open_prs({}, "repo", fake_data=True, number=None)
 
 
 def test_get_open_prs_iter_pages(mocker: MockerFixture) -> None:
