@@ -143,7 +143,35 @@ def test_active_inc_schema_validation() -> None:
         validate(instance=invalid_data, schema=ACTIVE_INC_SCHEMA)
 
 
-def test_incident_schema_validation() -> None:
+def test_get_submission_from_smelt_retry(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(20)  # INFO
+    error_data = {"errors": [{"message": "Argument 'kind' has invalid value"}]}
+    fake_data = {
+        "data": {
+            "incidents": {
+                "edges": [
+                    {
+                        "node": {
+                            "emu": True,
+                            "project": "project",
+                            "repositories": {"edges": []},
+                            "packages": {"edges": []},
+                            "requestSet": {"edges": []},
+                            "crd": None,
+                            "priority": 0,
+                        },
+                    },
+                ],
+            },
+        },
+    }
+
+    with patch("openqabot.loader.smelt.get_json", side_effect=[error_data, fake_data]):
+        res = get_submission_from_smelt(1)
+
+    assert res is not None
+    assert res["emu"] is True
+    assert "Retrying SMELT incident smelt:1 with different kind format" in caplog.text
     valid_data = {
         "data": {
             "incidents": {

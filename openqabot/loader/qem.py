@@ -105,8 +105,11 @@ def get_submissions(submission: str | None = None) -> list[Submission]:
             verify=not config_module.settings.insecure,
         )
 
-    if "error" in submissions:
+    if isinstance(submissions, dict) and "error" in submissions:
         raise LoaderQemError(submissions)
+
+    if isinstance(submissions, list) and len(submissions) == 1 and "error" in submissions[0]:
+        raise LoaderQemError(submissions[0])
 
     return [sub for s in submissions if (sub := Submission.create(s))]
 
@@ -129,6 +132,15 @@ def get_submissions_approver() -> list[SubReq]:
 def get_single_submission(submission_id: int, submission_type: str | None = None) -> list[SubReq]:
     """Fetch a single submission and wrap it in a list of SubReq objects."""
     submission = _get_submission(submission_id, submission_type)
+    if "error" in submission:
+        log.error(
+            "Dashboard API error: Unable to fetch submission %s:%s: %s",
+            submission_type or config.settings.default_submission_type,
+            submission_id,
+            submission["error"],
+        )
+        return []
+
     return [SubReq.from_dashboard(submission)]
 
 

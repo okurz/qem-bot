@@ -251,8 +251,6 @@ def test_clone_dedup_empty_results(mocker: MockerFixture) -> None:
     assert result is JobResult.NO_JOBS
 
 
-@pytest.mark.qem_behavior("NoResultsError isn't raised")
-@pytest.mark.usefixtures("fake_qem")
 def test_clone_dedup_error_results(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> None:
     """Test that None is returned when job results contain error."""
     caplog.set_level(logging.DEBUG, logger="bot.approver")
@@ -278,6 +276,31 @@ def test_clone_dedup_jobs_without_job_id(mocker: MockerFixture) -> None:
     mock_aggregates = [JobAggr(id=1, aggregate=False, with_aggregate=True)]
     result = approver.get_jobs(mock_aggregates[0], "api/jobs/update/", 1)
     assert result is JobResult.PASSED
+
+
+def test_approver_init_parsing() -> None:
+    """Test parsing of submission CLI parameters."""
+    # Test parsing of git:3076
+    args_git = make_approver_args(submission="git:3076")
+    args_git.incident = "git:3076"
+    approver_instance = Approver(args_git)
+    assert approver_instance.submission_type == "git"
+    assert approver_instance.single_submission == 3076
+
+    # Test parsing of simple integer submission
+    args_int = make_approver_args(submission="123")
+    args_int.incident = "123"
+    approver_instance = Approver(args_int)
+    assert approver_instance.submission_type is None
+    assert approver_instance.single_submission == 123
+
+    # Test with None submission
+    args_none = make_approver_args()
+    args_none.submission = None
+    args_none.incident = None
+    approver_instance = Approver(args_none)
+    assert approver_instance.submission_type is None
+    assert approver_instance.single_submission is None
 
 
 @pytest.mark.qem_behavior("NoResultsError isn't raised")
