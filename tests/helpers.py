@@ -59,7 +59,7 @@ class Repo:
     arch: str
 
 
-def _make_smelt_subreq(sub: int) -> SubReq:
+def _make_ibs_subreq(sub: int) -> SubReq:
     rr = sub * 100
     return SubReq(
         sub,
@@ -82,7 +82,7 @@ def _make_smelt_subreq(sub: int) -> SubReq:
 
 def f_sub_approver(*_args: Any) -> list[SubReq]:
     return [
-        *[_make_smelt_subreq(i) for i in range(1, 5)],
+        *[_make_ibs_subreq(i) for i in range(1, 5)],
         SubReq(
             5,
             500,

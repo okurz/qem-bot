@@ -103,8 +103,8 @@ def test_sub_normal() -> None:
     assert not sub.emu
     assert not sub.staging
     assert sub.embargoed
-    assert str(sub) == "smelt:24618"
-    assert repr(sub) == "<Submission: smelt:SUSE:Maintenance:24618:274060>"
+    assert str(sub) == "ibs:24618"
+    assert repr(sub) == "<Submission: ibs:SUSE:Maintenance:24618:274060>"
     assert sub.id == 24618
     assert sub.rrid == "SUSE:Maintenance:24618:274060"
     assert sub.is_gitea is False
@@ -255,7 +255,7 @@ def test_sub_repr_no_rrid() -> None:
     data = deepcopy(test_data)
     data["rr_number"] = None  # ty: ignore[invalid-assignment]
     sub = Submission(data)
-    assert repr(sub) == f"<Submission: smelt:{data['project']}>"
+    assert repr(sub) == f"<Submission: ibs:{data['project']}>"
 
 
 def test_sub_is_livepatch_false() -> None:
@@ -300,7 +300,7 @@ def test_revisions_with_fallback_no_revisions(caplog: pytest.LogCaptureFixture, 
     mocker.patch.object(sub, "compute_revisions_for_product_repo")
     caplog.set_level(logging.DEBUG, logger="bot.types.submission")
     assert sub.revisions_with_fallback("x86_64", "15-SP4") is None
-    assert "Submission smelt:24618: No revisions available" in caplog.text
+    assert "Submission ibs:24618: No revisions available" in caplog.text
 
 
 def test_slfo_channels_edge_cases(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -> None:
@@ -321,7 +321,7 @@ def test_slfo_channels_edge_cases(caplog: pytest.LogCaptureFixture, mocker: Mock
     submission = Submission(slfo_data)
     submission.log_skipped()
 
-    assert "Submission smelt:24618: Product UNKNOWN is not in considered products" in caplog.text
+    assert "Submission ibs:24618: Product UNKNOWN is not in considered products" in caplog.text
 
     caplog.clear()
     mocker.patch("openqabot.config.settings.obs_products", "all")
@@ -370,7 +370,7 @@ def test_submission_create_empty_packages(caplog: pytest.LogCaptureFixture) -> N
 
     sub = Submission.create(data)
     assert sub is None
-    assert "Submission smelt:24618 ignored: No packages found for project" in caplog.text
+    assert "Submission ibs:24618 ignored: No packages found for project" in caplog.text
 
 
 def test_compute_revisions_logging_once(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> None:

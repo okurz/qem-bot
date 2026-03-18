@@ -492,7 +492,7 @@ def test_aggregate_url_format(aggregate_factory: Any, mocker: MockerFixture) -> 
     )
     sub = mocker.MagicMock(spec=Submission)
     sub.id = 42
-    sub.type = "smelt"
+    sub.type = "ibs"
     sub.livepatch = False
     sub.staging = False
     sub.embargoed = False
@@ -503,7 +503,7 @@ def test_aggregate_url_format(aggregate_factory: Any, mocker: MockerFixture) -> 
     _, test_repos = agg.get_test_submissions_and_repos([sub], "x86_64")
     repo_url = test_repos["ISSUE"][0]
 
-    assert "smelt:" not in repo_url
+    assert "ibs:" not in repo_url
     assert "/42/" in repo_url
 
     test_submissions = defaultdict(list)
@@ -518,4 +518,4 @@ def test_aggregate_url_format(aggregate_factory: Any, mocker: MockerFixture) -> 
     dashboard_url = res["openqa"]["__DASHBOARD_INCIDENTS_URL"]
     assert "?type=" not in dashboard_url
     assert "/incident/42" in dashboard_url
-    assert "smelt" not in dashboard_url  # Should be clean of type if it's the default
+    assert "ibs" not in dashboard_url  # Should be clean of type if it's the default

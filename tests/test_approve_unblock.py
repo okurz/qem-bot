@@ -116,7 +116,7 @@ def test_approval_unblocked_via_openqa_comment(caplog: pytest.LogCaptureFixture,
     assert approver(mocker) == 0
     expected = [
         "* SUSE:Maintenance:2:200",
-        "Ignoring not-ok job http://instance.qa/t100002 for submission smelt:2 (manually marked as acceptable)",
+        "Ignoring not-ok job http://instance.qa/t100002 for submission ibs:2 (manually marked as acceptable)",
     ]
     assert_log_messages(caplog.messages, expected)
 
@@ -170,8 +170,8 @@ def test_some_jobs_marked_as_acceptable_for_via_openqa_comment(
 
     assert approver(mocker) == 0
     expected = [
-        "Ignoring not-ok job http://instance.qa/t100002 for submission smelt:2 (manually marked as acceptable)",
-        "Found not-ok, not-ignored job http://instance.qa/t100003 for submission smelt:2",
+        "Ignoring not-ok job http://instance.qa/t100002 for submission ibs:2 (manually marked as acceptable)",
+        "Found not-ok, not-ignored job http://instance.qa/t100003 for submission ibs:2",
         "SUSE:Maintenance:2:200 has at least one not-ok job in submission tests",
     ]
     assert_log_messages(caplog.messages, expected)
@@ -368,7 +368,7 @@ def test_approval_unblocked_with_various_comment_formats(
     assert approver(mocker) == 0
     assert "* SUSE:Maintenance:2:200" in caplog.messages
     assert (
-        "Ignoring not-ok job http://instance.qa/t100002 for submission smelt:2 (manually marked as acceptable)"
+        "Ignoring not-ok job http://instance.qa/t100002 for submission ibs:2 (manually marked as acceptable)"
         in caplog.messages
     )
 

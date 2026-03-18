@@ -114,7 +114,7 @@ class Settings(BaseSettings):
     main_openqa_domain: str = Field(default="openqa.suse.de", alias="MAIN_OPENQA_DOMAIN")
     git_review_bot: str | None = Field(default=None, alias="GIT_REVIEW_BOT")
     git_obs_staging_bot_user: str = Field(default="autogits_obs_staging_bot", alias="GIT_OBS_STAGING_BOT_USER")
-    default_submission_type: str = "smelt"
+    default_submission_type: str = "ibs"
     obs_maint_prj: str = Field(default="SUSE:Maintenance", alias="OBS_MAINT_PRJ")
     obs_group: str = Field(default="qam-openqa", alias="OBS_GROUP")
     oldest_approval_job_days: int = 6

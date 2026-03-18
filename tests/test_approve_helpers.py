@@ -40,7 +40,7 @@ def test_mark_job_as_acceptable_for_submission_request_error(
     approver_instance = Approver(args)
     mocker.patch("openqabot.approver.dashboard.patch", side_effect=f_patch)
     approver_instance.mark_job_as_acceptable_for_submission(1, 1)
-    assert "Unable to mark job 1 as acceptable for submission smelt:1" in caplog.text
+    assert "Unable to mark job 1 as acceptable for submission ibs:1" in caplog.text
 
 
 @pytest.mark.parametrize(

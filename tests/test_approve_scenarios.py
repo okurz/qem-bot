@@ -115,7 +115,7 @@ def test_single_submission_not_ok_not_approved(caplog: pytest.LogCaptureFixture,
         "SUSE:Maintenance:1:100",
         "SUSE:Maintenance:1:100 has at least one not-ok job in submission tests",
     )
-    assert "Found not-ok, not-ignored job http://instance.qa/t100001 for submission smelt:1" in caplog.messages
+    assert "Found not-ok, not-ignored job http://instance.qa/t100001 for submission ibs:1" in caplog.messages
     mock_comment.assert_called()
     assert any(c.args[0].rr == 100 for c in mock_comment.call_args_list)
 
@@ -252,7 +252,7 @@ def test_one_submission_failed_with_comment(caplog: pytest.LogCaptureFixture, mo
     mock_handle_job_not_found = mocker.patch("openqabot.approver.OpenQAInterface.handle_job_not_found")
     assert approver() == 0
     expected = [
-        "Ignoring obsolete job http://instance.qa/t100001 for submission smelt:1",
+        "Ignoring obsolete job http://instance.qa/t100001 for submission ibs:1",
         "* SUSE:Maintenance:1:100",
         "* SUSE:Maintenance:2:200",
         "* SUSE:Maintenance:3:300",
@@ -291,7 +291,7 @@ def test_one_aggr_failed(caplog: pytest.LogCaptureFixture, mocker: MockerFixture
     mock_handle_job_not_found = mocker.patch("openqabot.approver.OpenQAInterface.handle_job_not_found")
     assert approver(comment=True) == 0
     expected = [
-        "Ignoring obsolete job http://instance.qa/t100003 for submission smelt:2",
+        "Ignoring obsolete job http://instance.qa/t100003 for submission ibs:2",
         "* SUSE:Maintenance:1:100",
         "* SUSE:Maintenance:2:200",
         "* SUSE:Maintenance:3:300",
@@ -316,13 +316,13 @@ def test_single_submission_not_ok_no_data(caplog: pytest.LogCaptureFixture, mock
 
     mocker.patch(
         "openqabot.approver.get_single_submission",
-        return_value=[SubReq(sub=1, req=100, type="smelt", submission=None)],
+        return_value=[SubReq(sub=1, req=100, type="ibs", submission=None)],
     )
     mocker.patch("openqabot.approver.dashboard.get_json", side_effect=mock_get_json)
     mock_comment = mocker.patch("openqabot.commenter.Commenter.comment_on_submission")
     mock_handle_job_not_found = mocker.patch("openqabot.approver.OpenQAInterface.handle_job_not_found")
     approver(submission=1)
-    assert "smelt:1 has at least one not-ok job in submission tests" in caplog.messages
+    assert "ibs:1 has at least one not-ok job in submission tests" in caplog.messages
     mock_comment.assert_not_called()
     mock_handle_job_not_found.assert_not_called()
 
@@ -341,7 +341,7 @@ def test_single_submission_aggr_not_ok_no_data(caplog: pytest.LogCaptureFixture,
 
     mocker.patch(
         "openqabot.approver.get_single_submission",
-        return_value=[SubReq(sub=1, req=100, type="smelt", submission=None)],
+        return_value=[SubReq(sub=1, req=100, type="ibs", submission=None)],
     )
     mocker.patch("openqabot.approver.dashboard.get_json", side_effect=mock_get_json)
     mock_comment = mocker.patch("openqabot.commenter.Commenter.comment_on_submission")
@@ -354,7 +354,7 @@ def test_single_submission_aggr_not_ok_no_data(caplog: pytest.LogCaptureFixture,
     )
     mock_handle_job_not_found = mocker.patch("openqabot.approver.OpenQAInterface.handle_job_not_found")
     approver(submission=1)
-    assert "smelt:1 has at least one not-ok job in aggregate tests" in caplog.messages
+    assert "ibs:1 has at least one not-ok job in aggregate tests" in caplog.messages
     mock_comment.assert_not_called()
     mock_handle_job_not_found.assert_not_called()
 
@@ -400,13 +400,13 @@ def test_single_submission_aggr_no_jobs(caplog: pytest.LogCaptureFixture, mocker
             True,
             [
                 "* SUSE:Maintenance:2:200",
-                "Ignoring not-ok aggregate job http://instance.qa/t100002 for submission smelt:2 due to older ok job",
+                "Ignoring not-ok aggregate job http://instance.qa/t100002 for submission ibs:2 due to older ok job",
             ],
             None,
         ),
         (
             False,
-            ["Found not-ok, not-ignored job http://instance.qa/t100002 for submission smelt:2"],
+            ["Found not-ok, not-ignored job http://instance.qa/t100002 for submission ibs:2"],
             "SUSE:Maintenance:2:200 has at least one not-ok job in aggregate tests",
         ),
     ],
@@ -449,7 +449,7 @@ def test_approval_via_openqa_older_ok_job(
     [
         (
             [{"job_id": 100001, "status": "failed", "obsolete": True}],
-            ["Ignoring obsolete job http://instance.qa/t100001 for submission smelt:1"],
+            ["Ignoring obsolete job http://instance.qa/t100001 for submission ibs:1"],
             True,
         ),
         (
@@ -458,8 +458,8 @@ def test_approval_via_openqa_older_ok_job(
                 {"job_id": 100002, "status": "failed", "obsolete": False},
             ],
             [
-                "Ignoring obsolete job http://instance.qa/t100001 for submission smelt:1",
-                "Found not-ok, not-ignored job http://instance.qa/t100002 for submission smelt:1",
+                "Ignoring obsolete job http://instance.qa/t100001 for submission ibs:1",
+                "Found not-ok, not-ignored job http://instance.qa/t100002 for submission ibs:1",
             ],
             False,
         ),

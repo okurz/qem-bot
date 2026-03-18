@@ -685,7 +685,7 @@ def test_should_skip_embargoed(caplog: pytest.LogCaptureFixture, mocker: MockerF
     ctx = SubContext(sub=sub, arch="x86_64", flavor="AAA", data={})
     cfg = SubConfig(ci_url=None, ignore_onetime=False)
     assert submissions_obj.should_skip(ctx, cfg, {}) is True
-    assert "Submission smelt:1 skipped: Embargoed and embargo-filtering enabled" in caplog.text
+    assert "Submission ibs:1 skipped: Embargoed and embargo-filtering enabled" in caplog.text
 
 
 def test_should_skip_kernel_missing_repo(caplog: pytest.LogCaptureFixture) -> None:
@@ -717,13 +717,13 @@ def test_should_skip_kernel_missing_repo(caplog: pytest.LogCaptureFixture) -> No
             {"aggregate_job": False, "aggregate_check_true": ["MATCH"]},
             {"MATCH", "OTHER"},
             False,
-            "Submission smelt:1: Aggregate job not required",
+            "Submission ibs:1: Aggregate job not required",
         ),
         (
             {"aggregate_job": False, "aggregate_check_false": ["MISSING"]},
             {"OTHER"},
             False,
-            "Submission smelt:1: Aggregate job not required",
+            "Submission ibs:1: Aggregate job not required",
         ),
         (
             {"aggregate_job": False, "aggregate_check_true": ["POS"], "aggregate_check_false": ["NEG"]},

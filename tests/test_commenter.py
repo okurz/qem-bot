@@ -66,13 +66,13 @@ def mock_args() -> Namespace:
 
 
 @pytest.fixture
-def mock_smelt_sub() -> MagicMock:
+def mock_ibs_sub() -> MagicMock:
     sub = MagicMock(spec=Submission)
     sub.id = 1
-    sub.type = "smelt"
+    sub.type = "ibs"
     sub.rr = 274060
     sub.revisions = None
-    sub.__str__ = MagicMock(return_value="smelt:1")
+    sub.__str__ = MagicMock(return_value="ibs:1")
     return sub
 
 
@@ -129,7 +129,7 @@ def test_commenter_init_with_submissions(mock_args: Namespace) -> None:
 def test_commenter_call_failed_jobs(
     mocker: MockerFixture,
     mock_args: Namespace,
-    mock_smelt_sub: MagicMock,
+    mock_ibs_sub: MagicMock,
     caplog: pytest.LogCaptureFixture,
     make_job: Callable,
 ) -> None:
@@ -140,18 +140,18 @@ def test_commenter_call_failed_jobs(
     mocker.patch("openqabot.commenter.get_aggregate_results", return_value=[])
     mock_osc_comment = mocker.patch.object(Commenter, "osc_comment")
 
-    c = Commenter(mock_args, submissions=[mock_smelt_sub])
+    c = Commenter(mock_args, submissions=[mock_ibs_sub])
     assert c() == 0
     assert "comment state" in caplog.text
     assert "failed" in caplog.text
-    mock_osc_comment.assert_called_once_with(mock_smelt_sub, mocker.ANY, "failed")
+    mock_osc_comment.assert_called_once_with(mock_ibs_sub, mocker.ANY, "failed")
 
 
 @pytest.mark.usefixtures("commenter_setup")
 def test_commenter_call_passed_jobs(
     mocker: MockerFixture,
     mock_args: Namespace,
-    mock_smelt_sub: MagicMock,
+    mock_ibs_sub: MagicMock,
 ) -> None:
     mocker.patch(
         "openqabot.commenter.get_submission_results",
@@ -160,41 +160,41 @@ def test_commenter_call_passed_jobs(
     mocker.patch("openqabot.commenter.get_aggregate_results", return_value=[])
     mock_osc_comment = mocker.patch.object(Commenter, "osc_comment")
 
-    c = Commenter(mock_args, submissions=[mock_smelt_sub])
+    c = Commenter(mock_args, submissions=[mock_ibs_sub])
     assert c() == 0
-    mock_osc_comment.assert_called_once_with(mock_smelt_sub, mocker.ANY, "passed")
+    mock_osc_comment.assert_called_once_with(mock_ibs_sub, mocker.ANY, "passed")
 
 
 @pytest.mark.usefixtures("commenter_setup")
 def test_osc_comment_no_request(
     mock_args: Namespace,
-    mock_smelt_sub: MagicMock,
+    mock_ibs_sub: MagicMock,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     caplog.set_level(logging.DEBUG, logger="bot.commenter")
-    mock_smelt_sub.rr = None
+    mock_ibs_sub.rr = None
     c = Commenter(mock_args, submissions=[])
-    c.osc_comment(mock_smelt_sub, "Test message", "passed")
+    c.osc_comment(mock_ibs_sub, "Test message", "passed")
     assert "Comment skipped for submission" in caplog.text
 
 
 @pytest.mark.usefixtures("commenter_setup")
 def test_comment_on_submission_empty_msg(
     mock_args: Namespace,
-    mock_smelt_sub: MagicMock,
+    mock_ibs_sub: MagicMock,
     mocker: MockerFixture,
 ) -> None:
     mocker.patch("openqabot.commenter.get_submission_results", return_value=[{"status": "passed"}])  # No "build" key
     mocker.patch("openqabot.commenter.get_aggregate_results", return_value=[])
     c = Commenter(mock_args, submissions=[])
-    with pytest.raises(EmptyCommentError, match="Skipping empty comment for smelt:1"):
-        c.comment_on_submission(mock_smelt_sub)
+    with pytest.raises(EmptyCommentError, match="Skipping empty comment for ibs:1"):
+        c.comment_on_submission(mock_ibs_sub)
 
 
 @pytest.mark.usefixtures("commenter_setup")
 def test_osc_comment_dry_run(
     mock_args: Namespace,
-    mock_smelt_sub: MagicMock,
+    mock_ibs_sub: MagicMock,
     caplog: pytest.LogCaptureFixture,
     make_comment_api: Callable,
     commenter_setup: dict[str, MagicMock],
@@ -204,7 +204,7 @@ def test_osc_comment_dry_run(
     commenter_setup["comment_api"].return_value = comment_api
 
     c = Commenter(mock_args, submissions=[])
-    c.osc_comment(mock_smelt_sub, "Test message", "passed")
+    c.osc_comment(mock_ibs_sub, "Test message", "passed")
     assert "Would write comment to request" in caplog.text
     assert not comment_api.add_comment.called
 
@@ -229,18 +229,18 @@ def test_osc_comment_on_request_uses_custom_obs_url(
 @pytest.mark.usefixtures("commenter_setup")
 def test_osc_comment_with_revision(
     mock_args: Namespace,
-    mock_smelt_sub: MagicMock,
+    mock_ibs_sub: MagicMock,
     caplog: pytest.LogCaptureFixture,
     make_comment_api: Callable,
     commenter_setup: dict[str, MagicMock],
 ) -> None:
     caplog.set_level(logging.DEBUG, logger="bot.commenter")
-    mock_smelt_sub.revisions = {ArchVer("x86_64", "15-SP4"): 12345}
+    mock_ibs_sub.revisions = {ArchVer("x86_64", "15-SP4"): 12345}
     comment_api = make_comment_api(comment_find_results=[(None, None), (None, None)])
     commenter_setup["comment_api"].return_value = comment_api
 
     c = Commenter(mock_args, submissions=[])
-    c.osc_comment(mock_smelt_sub, "Test message", "passed")
+    c.osc_comment(mock_ibs_sub, "Test message", "passed")
     assert "Would write comment to request" in caplog.text
     assert not comment_api.add_comment.called
 
@@ -248,7 +248,7 @@ def test_osc_comment_with_revision(
 @pytest.mark.usefixtures("commenter_setup")
 def test_osc_comment_no_comment(
     mock_args: Namespace,
-    mock_smelt_sub: MagicMock,
+    mock_ibs_sub: MagicMock,
     caplog: pytest.LogCaptureFixture,
     make_comment_api: Callable,
     commenter_setup: dict[str, MagicMock],
@@ -257,7 +257,7 @@ def test_osc_comment_no_comment(
     commenter_setup["comment_api"].return_value = make_comment_api(comment_find_results=[(None, None), (None, None)])
 
     c = Commenter(mock_args, submissions=[])
-    c.osc_comment(mock_smelt_sub, "Test message", "passed")
+    c.osc_comment(mock_ibs_sub, "Test message", "passed")
     assert "No comment with this state, looking without the state filter" in caplog.text
     assert "No previous comment found to replace" in caplog.text
 
@@ -265,7 +265,7 @@ def test_osc_comment_no_comment(
 @pytest.mark.usefixtures("commenter_setup")
 def test_osc_comment_similar_exists(
     mock_args: Namespace,
-    mock_smelt_sub: MagicMock,
+    mock_ibs_sub: MagicMock,
     caplog: pytest.LogCaptureFixture,
     make_comment_api: Callable,
     commenter_setup: dict[str, MagicMock],
@@ -277,7 +277,7 @@ def test_osc_comment_similar_exists(
     )
 
     c = Commenter(mock_args, submissions=[])
-    c.osc_comment(mock_smelt_sub, "Test message", "passed")
+    c.osc_comment(mock_ibs_sub, "Test message", "passed")
     assert "Previous comment is too similar" in caplog.text
     assert not commenter_setup["comment_api"].return_value.add_comment.called
 
@@ -285,7 +285,7 @@ def test_osc_comment_similar_exists(
 @pytest.mark.usefixtures("commenter_setup")
 def test_osc_comment_delete_existing_not_similar_not_dry(
     mock_args: Namespace,
-    mock_smelt_sub: MagicMock,
+    mock_ibs_sub: MagicMock,
     make_comment_api: Callable,
     commenter_setup: dict[str, MagicMock],
 ) -> None:
@@ -295,7 +295,7 @@ def test_osc_comment_delete_existing_not_similar_not_dry(
     commenter_setup["comment_api"].return_value = comment_api
 
     c = Commenter(mock_args, submissions=[])
-    c.osc_comment(mock_smelt_sub, "Test message", "passed")
+    c.osc_comment(mock_ibs_sub, "Test message", "passed")
     comment_api.delete.assert_called_once_with(42)
     comment_api.add_comment.assert_called_once()
 
@@ -303,7 +303,7 @@ def test_osc_comment_delete_existing_not_similar_not_dry(
 @pytest.mark.usefixtures("commenter_setup")
 def test_osc_comment_replace_not_dry(
     mock_args: Namespace,
-    mock_smelt_sub: MagicMock,
+    mock_ibs_sub: MagicMock,
     make_comment_api: Callable,
     commenter_setup: dict[str, MagicMock],
 ) -> None:
@@ -315,7 +315,7 @@ def test_osc_comment_replace_not_dry(
     commenter_setup["comment_api"].return_value = comment_api
 
     c = Commenter(mock_args, submissions=[])
-    c.osc_comment(mock_smelt_sub, "Test message", "passed")
+    c.osc_comment(mock_ibs_sub, "Test message", "passed")
     comment_api.delete.assert_called_once_with(42)
     comment_api.add_comment.assert_called_once()
 
@@ -323,7 +323,7 @@ def test_osc_comment_replace_not_dry(
 @pytest.mark.usefixtures("commenter_setup")
 def test_osc_comment_replace_dry_run(
     mock_args: Namespace,
-    mock_smelt_sub: MagicMock,
+    mock_ibs_sub: MagicMock,
     caplog: pytest.LogCaptureFixture,
     make_comment_api: Callable,
     commenter_setup: dict[str, MagicMock],
@@ -338,7 +338,7 @@ def test_osc_comment_replace_dry_run(
     commenter_setup["comment_api"].return_value = comment_api
 
     c = Commenter(mock_args, submissions=[])
-    c.osc_comment(mock_smelt_sub, "Test message", "passed")
+    c.osc_comment(mock_ibs_sub, "Test message", "passed")
     assert "Would delete comment 42" in caplog.text
     assert "Would write comment to request" in caplog.text
     assert not comment_api.delete.called
@@ -563,13 +563,13 @@ def test_gitea_comment_similar_exists(
 def test_commenter_call_empty_msg(
     mocker: MockerFixture,
     mock_args: Namespace,
-    mock_smelt_sub: MagicMock,
+    mock_ibs_sub: MagicMock,
 ) -> None:
     mocker.patch("openqabot.commenter.get_submission_results", return_value=[{"status": "passed"}])
     mocker.patch("openqabot.commenter.get_aggregate_results", return_value=[])
 
-    c = Commenter(mock_args, submissions=[mock_smelt_sub])
-    with pytest.raises(EmptyCommentError, match="Skipping empty comment for smelt:1"):
+    c = Commenter(mock_args, submissions=[mock_ibs_sub])
+    with pytest.raises(EmptyCommentError, match="Skipping empty comment for ibs:1"):
         c()
 
 
@@ -616,7 +616,7 @@ def test_comment_on_submission_no_results_error(
         "channels": ["SUSE:Updates:SLE-Module-Basesystem:15-SP5:x86_64"],
         "packages": ["pkg1"],
         "emu": False,
-        "type": "smelt",
+        "type": "ibs",
     }
     sub = Submission(sub_data)
 
@@ -625,7 +625,7 @@ def test_comment_on_submission_no_results_error(
     c.comment_on_submission(sub)
     assert "no sub" in caplog.text
     assert "val err" in caplog.text
-    assert "No jobs found for submission smelt:1" in caplog.text
+    assert "No jobs found for submission ibs:1" in caplog.text
 
 
 @pytest.mark.usefixtures("commenter_setup")
@@ -647,14 +647,14 @@ def test_comment_on_submission_running_jobs(
         "channels": ["SUSE:Updates:SLE-Module-Basesystem:15-SP5:x86_64"],
         "packages": ["pkg1"],
         "emu": False,
-        "type": "smelt",
+        "type": "ibs",
     }
     sub = Submission(sub_data)
 
     mocker.patch("openqabot.commenter.get_submission_results", return_value=[{"status": "running", "build": "1"}])
     mocker.patch("openqabot.commenter.get_aggregate_results", return_value=[])
     c.comment_on_submission(sub)
-    assert "Postponing comment for smelt:1: Some tests are still running" in caplog.text
+    assert "Postponing comment for ibs:1: Some tests are still running" in caplog.text
 
 
 @pytest.mark.usefixtures("commenter_setup")
@@ -676,14 +676,14 @@ def test_comment_on_submission_no_jobs(
         "channels": ["SUSE:Updates:SLE-Module-Basesystem:15-SP5:x86_64"],
         "packages": ["pkg1"],
         "emu": False,
-        "type": "smelt",
+        "type": "ibs",
     }
     sub = Submission(sub_data)
 
     mocker.patch("openqabot.commenter.get_submission_results", return_value=[])
     mocker.patch("openqabot.commenter.get_aggregate_results", return_value=[])
     c.comment_on_submission(sub)
-    assert "No jobs found for submission smelt:1" in caplog.text
+    assert "No jobs found for submission ibs:1" in caplog.text
 
 
 @pytest.mark.usefixtures("commenter_setup")
