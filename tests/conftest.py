@@ -20,7 +20,13 @@ from openqabot.config import Settings, settings
 from openqabot.dashboard import clear_cache
 from openqabot.errors import NoResultsError
 from openqabot.loader.gitea import read_json_file
-from openqabot.loader.qem import JobAggr
+from openqabot.loader.qem import (
+    JobAggr,
+    get_aggregate_results,
+    get_aggregate_settings,
+    get_submission_results,
+    get_submission_settings,
+)
 from openqabot.openqa import OpenQAInterface
 from openqabot.repodiff import Package
 from openqabot.requests import find_request_on_obs, get_obs_request_list
@@ -126,6 +132,10 @@ def make_approver(submission: int = 0, *, mocker: MockerFixture | None = None, c
 @pytest.fixture(autouse=True)  # noqa: RUF076 - pytest autouse required to clear cache automatically before every test
 def _auto_clear_cache() -> None:
     clear_cache()
+    get_submission_settings.cache_clear()
+    get_aggregate_settings.cache_clear()
+    get_submission_results.cache_clear()
+    get_aggregate_results.cache_clear()
 
 
 @pytest.fixture(scope="session")

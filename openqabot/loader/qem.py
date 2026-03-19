@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import sys
+from functools import lru_cache
 from http import HTTPStatus
 from itertools import chain
 from logging import getLogger
@@ -138,6 +139,7 @@ def get_single_submission(submission_id: int, submission_type: str | None = None
     ]
 
 
+@lru_cache(maxsize=128)
 def get_submission_settings(
     sub: int, *, all_submissions: bool = False, submission_type: str | None = None
 ) -> list[JobAggr]:
@@ -197,6 +199,7 @@ def get_submission_settings_data(number: int, submission_type: str | None = None
     ]
 
 
+@lru_cache(maxsize=128)
 def get_submission_results(sub: int, submission_type: str | None = None) -> list[dict[str, Any]]:
     """Fetch all test results associated with a submission."""
     settings = get_submission_settings(sub, all_submissions=False, submission_type=submission_type)
@@ -214,6 +217,7 @@ def get_submission_results(sub: int, submission_type: str | None = None) -> list
     return list(chain.from_iterable(all_data))
 
 
+@lru_cache(maxsize=128)
 def get_aggregate_settings(sub: int, submission_type: str | None = None) -> list[JobAggr]:
     """Fetch aggregate job settings associated with a submission."""
     params = {}
@@ -250,6 +254,7 @@ def get_aggregate_settings_data(data: Data) -> Sequence[Data]:
     return [data._replace(settings_id=s["id"], build=s["build"]) for s in settings[:3]]
 
 
+@lru_cache(maxsize=128)
 def get_aggregate_results(sub: int, submission_type: str | None = None) -> list[dict[str, Any]]:
     """Fetch all aggregate test results associated with a submission."""
     settings = get_aggregate_settings(sub, submission_type=submission_type)
