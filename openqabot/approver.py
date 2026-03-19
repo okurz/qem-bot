@@ -13,7 +13,7 @@ from enum import Enum, auto
 from functools import lru_cache
 from http import HTTPStatus
 from logging import getLogger
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from urllib.error import HTTPError
 
 import osc.conf
@@ -169,27 +169,43 @@ class Approver:
 
         return 0 if overall_result else 1
 
-    def _reject(self, sub: SubReq, reason: str) -> bool:
+    def _reject(
+        self,
+        sub: SubReq,
+        reason: str,
+        s_jobs: list[dict[str, Any]] | None = None,
+        a_jobs: list[dict[str, Any]] | None = None,
+    ) -> bool:
         log.info(reason, ms2str(sub))
         if self.comment and sub.submission:
-            self.commenter.comment_on_submission(sub.submission)
+            self.commenter.comment_on_submission(sub.submission, s_jobs=s_jobs, a_jobs=a_jobs)
         if not self.dry:
             update_incident_reason(sub.sub, reason % ms2str(sub))
         return False
 
     def _evaluate_results(self, sub: SubReq, s_jobs: list[JobAggr], a_jobs: list[JobAggr]) -> bool:
-        s_res = self.get_submission_result(s_jobs, "api/jobs/incident/", sub.sub, submission_type=sub.type)
+        s_res, s_data = self.get_submission_result(s_jobs, "api/jobs/incident/", sub.sub, submission_type=sub.type)
         if s_res is JobResult.FAILED:
-            return self._reject(sub, "%s has at least one not-ok job in submission tests")
+            return self._reject(sub, "%s has at least one not-ok job in submission tests", s_jobs=s_data)
         if s_res is JobResult.NO_JOBS:
-            return self._reject(sub, "%s has no jobs in submission tests (openQA job template mismatch?)")
+            return self._reject(sub, "%s has no jobs in submission tests (openQA job template mismatch?)", s_jobs=s_data)
 
         if any(s.with_aggregate for s in s_jobs):
-            a_res = self.get_submission_result(a_jobs, "api/jobs/update/", sub.sub, submission_type=sub.type)
+            a_res, a_data = self.get_submission_result(a_jobs, "api/jobs/update/", sub.sub, submission_type=sub.type)
             if a_res is JobResult.FAILED:
-                return self._reject(sub, "%s has at least one not-ok job in aggregate tests")
+                return self._reject(
+                    sub,
+                    "%s has at least one not-ok job in aggregate tests",
+                    s_jobs=s_data,
+                    a_jobs=a_data,
+                )
             if a_res is JobResult.NO_JOBS:
-                return self._reject(sub, "%s has no jobs in aggregate tests (openQA job template mismatch?)")
+                return self._reject(
+                    sub,
+                    "%s has no jobs in aggregate tests (openQA job template mismatch?)",
+                    s_jobs=s_data,
+                    a_jobs=a_data,
+                )
 
         return True
 
@@ -400,7 +416,9 @@ class Approver:
         return False
 
     @lru_cache(maxsize=128)  # noqa: B019
-    def get_jobs(self, job_aggr: JobAggr, api: str, sub: int, submission_type: str | None = None) -> JobResult:
+    def get_jobs(
+        self, job_aggr: JobAggr, api: str, sub: int, submission_type: str | None = None
+    ) -> tuple[JobResult, list[dict[str, Any]]]:
         """Retrieve jobs for a specific aggregate or incident setting.
 
         Note: Results are cached. If new job clones are created in openQA after
@@ -421,10 +439,10 @@ class Approver:
                 submission_type or config.settings.default_submission_type,
                 sub,
             )
-            return JobResult.NO_JOBS
+            return JobResult.NO_JOBS, []
         if not isinstance(job_results, list):
             log.warning("Unexpected job results format for job_aggr %s: %s", job_aggr.id, job_results)
-            return JobResult.NO_JOBS
+            return JobResult.NO_JOBS, []
         original_count = len(job_results)
         job_results = deduplicate_jobs_by_scenario(job_results)
         if len(job_results) < original_count:
@@ -436,25 +454,30 @@ class Approver:
             )
         self.mark_jobs_as_acceptable_for_submission(job_results, sub)
         if all(self.is_job_acceptable(sub, api, r, submission_type=submission_type) for r in job_results):
-            return JobResult.PASSED
-        return JobResult.FAILED
+            return JobResult.PASSED, job_results
+        return JobResult.FAILED, job_results
 
     def get_submission_result(
         self, jobs: list[JobAggr], api: str, sub: int, submission_type: str | None = None
-    ) -> JobResult:
+    ) -> tuple[JobResult, list[dict[str, Any]]]:
         """Summarize results for all jobs of a submission."""
+        all_job_results: list[dict[str, Any]] = []
         if not jobs:
-            return JobResult.NO_JOBS
+            return JobResult.NO_JOBS, all_job_results
 
         has_passed = False
+        has_failed = False
         for job_aggr in jobs:
-            success = self.get_jobs(job_aggr, api, sub, submission_type=submission_type)
+            success, job_results = self.get_jobs(job_aggr, api, sub, submission_type=submission_type)
+            all_job_results.extend(job_results)
             if success is JobResult.FAILED:
-                return JobResult.FAILED
-            if success is JobResult.PASSED:
+                has_failed = True
+            elif success is JobResult.PASSED:
                 has_passed = True
 
-        return JobResult.PASSED if has_passed else JobResult.NO_JOBS
+        if has_failed:
+            return JobResult.FAILED, all_job_results
+        return (JobResult.PASSED if has_passed else JobResult.NO_JOBS), all_job_results
 
     def approve(self, sub: SubReq) -> bool:
         """Approve a submission in OBS or Gitea."""

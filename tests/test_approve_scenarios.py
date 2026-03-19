@@ -82,7 +82,7 @@ def test_no_jobs(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -> Non
 
 @responses.activate
 @with_fake_qem("NoResultsError isn't raised")
-@pytest.mark.usefixtures("fake_single_submission_mocks")
+@pytest.mark.usefixtures("fake_single_submission_mocks", "fake_openqa_older_jobs_api")
 def test_single_submission_not_ok_not_approved(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -> None:
     caplog.set_level(logging.DEBUG, logger="bot.approver")
 
@@ -105,7 +105,7 @@ def test_single_submission_not_ok_not_approved(caplog: pytest.LogCaptureFixture,
 
 @responses.activate
 @with_fake_qem("NoResultsError isn't raised")
-@pytest.mark.usefixtures("fake_single_submission_mocks")
+@pytest.mark.usefixtures("fake_single_submission_mocks", "fake_openqa_older_jobs_api")
 def test_no_comment_suppresses_commenting(mocker: MockerFixture) -> None:
     def mock_get_json(url: str, **_kwargs: Any) -> Any:
         return [{"submission_settings": int(url.rsplit("/", maxsplit=1)[-1]), "job_id": 100001, "status": "failed"}]
@@ -289,7 +289,7 @@ def test_one_aggr_failed(caplog: pytest.LogCaptureFixture, mocker: MockerFixture
 
 @responses.activate
 @with_fake_qem("NoResultsError isn't raised")
-@pytest.mark.usefixtures("fake_single_submission_mocks")
+@pytest.mark.usefixtures("fake_single_submission_mocks", "fake_openqa_older_jobs_api")
 def test_single_submission_not_ok_no_data(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -> None:
     caplog.set_level(logging.DEBUG, logger="bot.approver")
 

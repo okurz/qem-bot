@@ -51,20 +51,32 @@ class Commenter:
 
         return 0
 
-    def comment_on_submission(self, sub: Submission) -> None:
+    def comment_on_submission(
+        self,
+        sub: Submission,
+        s_jobs: list[dict[str, Any]] | None = None,
+        a_jobs: list[dict[str, Any]] | None = None,
+    ) -> None:
         """Comment on a single submission if it has openQA results."""
         if sub.type not in {config.settings.default_submission_type, "git"}:
             log.debug("Submission %s skipped: Not a SMELT incident or Gitea PR (type: %s)", sub, sub.type)
             return
 
-        def get_jobs(func: Callable[[int, str | None], list[dict[str, Any]]]) -> list[dict[str, Any]]:
+        if s_jobs is None:
             try:
-                return func(sub.id, sub.type)
+                s_jobs = get_submission_results(sub.id, submission_type=sub.type)
             except (ValueError, NoResultsError) as e:
                 log.debug(e)
-                return []
+                s_jobs = []
 
-        all_jobs = get_jobs(get_submission_results) + get_jobs(get_aggregate_results)
+        if a_jobs is None:
+            try:
+                a_jobs = get_aggregate_results(sub.id, submission_type=sub.type)
+            except (ValueError, NoResultsError) as e:
+                log.debug(e)
+                a_jobs = []
+
+        all_jobs = s_jobs + a_jobs
 
         if res := self.generate_comment(sub, all_jobs):
             handlers = {config.settings.default_submission_type: self.osc_comment, "git": self.gitea_comment}

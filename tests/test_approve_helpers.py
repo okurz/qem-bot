@@ -135,7 +135,9 @@ def test_approvable_clears_reason(mocker: MockerFixture) -> None:
     assert approver.approvable(sub) is True
     mock_update.assert_called_once_with(1, None)
     approver_instance = Approver(args)
-    assert approver_instance.get_submission_result([], "api/", 1) is JobResult.NO_JOBS
+    result, data = approver_instance.get_submission_result([], "api/", 1)
+    assert result is JobResult.NO_JOBS
+    assert data == []
 
 
 def test_job_contains_submission_no_job_settings(mocker: MockerFixture) -> None:
@@ -155,7 +157,7 @@ def test_clone_dedup_latest_passes_approves(mocker: MockerFixture) -> None:
     mocker.patch("openqabot.approver.dashboard.get_json", return_value=mock_job_results)
     approver = Approver(make_approver_args())
     mock_aggr = JobAggr(id=1000, aggregate=False, with_aggregate=True)
-    result = approver.get_jobs(mock_aggr, "api/jobs/incident/", 1)
+    result, _ = approver.get_jobs(mock_aggr, "api/jobs/incident/", 1)
     assert result is JobResult.PASSED
 
 
@@ -172,7 +174,7 @@ def test_clone_dedup_latest_fails_blocks(mocker: MockerFixture) -> None:
     mocker.patch.object(Approver, "is_job_marked_acceptable_for_submission", return_value=False)
     approver = Approver(make_approver_args())
     mock_aggr = JobAggr(id=1000, aggregate=False, with_aggregate=True)
-    result = approver.get_jobs(mock_aggr, "api/jobs/incident/", 1)
+    result, _ = approver.get_jobs(mock_aggr, "api/jobs/incident/", 1)
     assert result is JobResult.FAILED
 
 
@@ -198,7 +200,7 @@ def test_clone_dedup_different_scenarios(mocker: MockerFixture) -> None:
     mocker.patch("openqabot.approver.dashboard.get_json", return_value=mock_job_results)
     approver = Approver(make_approver_args())
     mock_aggr = JobAggr(id=1000, aggregate=False, with_aggregate=True)
-    result = approver.get_jobs(mock_aggr, "api/jobs/incident/", 1)
+    result, _ = approver.get_jobs(mock_aggr, "api/jobs/incident/", 1)
     assert result is JobResult.PASSED
 
 
@@ -214,7 +216,7 @@ def test_clone_dedup_two_scenarios_one_fails_blocks(mocker: MockerFixture) -> No
     mocker.patch.object(Approver, "is_job_marked_acceptable_for_submission", return_value=False)
     approver = Approver(make_approver_args())
     mock_aggr = JobAggr(id=1000, aggregate=False, with_aggregate=True)
-    result = approver.get_jobs(mock_aggr, "api/jobs/incident/", 1)
+    result, _ = approver.get_jobs(mock_aggr, "api/jobs/incident/", 1)
     assert result is JobResult.FAILED
 
 
@@ -234,8 +236,8 @@ def test_clone_dedup_fallback_to_other_urls(mocker: MockerFixture) -> None:
     mocker.patch("openqabot.approver.dashboard.get_json", side_effect=mock_get_json)
     approver = Approver(make_approver_args())
     mock_aggr = JobAggr(id=1000, aggregate=False, with_aggregate=True)
-    result_incident = approver.get_jobs(mock_aggr, "api/jobs/incident/", 1)
-    result_update = approver.get_jobs(mock_aggr, "api/jobs/update/", 1)
+    result_incident, _ = approver.get_jobs(mock_aggr, "api/jobs/incident/", 1)
+    result_update, _ = approver.get_jobs(mock_aggr, "api/jobs/update/", 1)
     assert result_incident is JobResult.PASSED
     assert result_update is JobResult.PASSED
 
@@ -247,7 +249,7 @@ def test_clone_dedup_empty_results(mocker: MockerFixture) -> None:
     mocker.patch("openqabot.approver.dashboard.get_json", return_value=[])
     approver = Approver(make_approver_args())
     mock_aggregates = [JobAggr(id=1, aggregate=False, with_aggregate=True)]
-    result = approver.get_jobs(mock_aggregates[0], "api/jobs/update/", 1)
+    result, _ = approver.get_jobs(mock_aggregates[0], "api/jobs/update/", 1)
     assert result is JobResult.NO_JOBS
 
 
@@ -260,7 +262,7 @@ def test_clone_dedup_error_results(mocker: MockerFixture, caplog: pytest.LogCapt
     mocker.patch("openqabot.approver.dashboard.get_json", return_value=mock_job_results)
     approver = Approver(make_approver_args())
     mock_aggregates = [JobAggr(id=1, aggregate=False, with_aggregate=True)]
-    result = approver.get_jobs(mock_aggregates[0], "api/jobs/update/", 1)
+    result, _ = approver.get_jobs(mock_aggregates[0], "api/jobs/update/", 1)
     assert result is JobResult.NO_JOBS
     assert any("Unexpected job results format" in msg for msg in caplog.messages)
 
@@ -276,7 +278,7 @@ def test_clone_dedup_jobs_without_job_id(mocker: MockerFixture) -> None:
     mocker.patch("openqabot.approver.dashboard.get_json", return_value=mock_job_results)
     approver = Approver(make_approver_args())
     mock_aggregates = [JobAggr(id=1, aggregate=False, with_aggregate=True)]
-    result = approver.get_jobs(mock_aggregates[0], "api/jobs/update/", 1)
+    result, _ = approver.get_jobs(mock_aggregates[0], "api/jobs/update/", 1)
     assert result is JobResult.PASSED
 
 
@@ -291,5 +293,5 @@ def test_clone_dedup_keeps_highest_job_id(mocker: MockerFixture) -> None:
     mocker.patch("openqabot.approver.dashboard.get_json", return_value=mock_job_results)
     approver = Approver(make_approver_args())
     mock_aggregates = [JobAggr(id=1, aggregate=False, with_aggregate=True)]
-    result = approver.get_jobs(mock_aggregates[0], "api/jobs/update/", 1)
+    result, _ = approver.get_jobs(mock_aggregates[0], "api/jobs/update/", 1)
     assert result is JobResult.PASSED
