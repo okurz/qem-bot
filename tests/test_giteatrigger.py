@@ -3,6 +3,7 @@
 """Tests GiteaTrigger class."""
 
 import logging
+import requests
 from argparse import Namespace
 from pathlib import Path
 from typing import cast
