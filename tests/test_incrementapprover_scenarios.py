@@ -19,7 +19,7 @@ import responses
 from openqabot.errors import AmbiguousApprovalStatusError
 from openqabot.incrementapprover import IncrementApprover
 from openqabot.loader.config import get_configs_from_path
-from openqabot.loader.incrementconfig import IncrementConfig
+from openqabot.loader.incrementconfig import IncrementConfig, from_config_entry
 from openqabot.types.increment import ApprovalStatus, BuildIdentifier, BuildInfo
 
 from .helpers import (
@@ -184,7 +184,7 @@ def test_scheduling_extra_livepatching_builds_with_no_openqa_jobs(
 ) -> None:
     path = Path("tests/fixtures/config-increment-approver/increment-definitions.yaml")
     configs = iter(
-        get_configs_from_path(path, "product_increments", IncrementConfig.from_config_entry, load_defaults=False)
+        get_configs_from_path(path, "product_increments", from_config_entry, load_defaults=False)
     )
     (errors, jobs) = run_approver(
         mocker, caplog, schedule=True, diff_project_suffix="PUBLISH/product", config=next(configs)
@@ -205,7 +205,7 @@ def test_scheduling_extra_livepatching_builds_based_on_source_report(
 ) -> None:
     path = Path("tests/fixtures/config-increment-approver/increment-definitions.yaml")
     configs = iter(
-        get_configs_from_path(path, "product_increments", IncrementConfig.from_config_entry, load_defaults=False)
+        get_configs_from_path(path, "product_increments", from_config_entry, load_defaults=False)
     )
     mocker.patch("osc.core.get_repos_of_project", side_effect=fake_get_repos_of_project)
     mocker.patch("osc.core.get_binarylist", side_effect=fake_get_binarylist)
@@ -274,7 +274,6 @@ def test_handle_approval_valid_request_id(caplog: pytest.LogCaptureFixture, fake
     status = ApprovalStatus(
         fake_osc_request, ok_jobs={1, 2}, reasons_to_disapprove=[], processed_jobs=set(), builds=set(), jobs=[]
     )
-
     approver.handle_approval(status)
     assert (
         "Approving OBS request https://build.suse.de/request/show/42: All 2 openQA jobs have passed/softfailed"
