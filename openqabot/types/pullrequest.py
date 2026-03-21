@@ -55,6 +55,10 @@ class OBSCommentable:
         return f"[{label}]({url})"
 
 
+class GiteaPullRequestProtocol(CommentableProtocol):
+    """Protocol for objects representing a Gitea pull request."""
+
+
 @dataclass
 class PullRequest:
     """Represent all information to operate Gitea pull requests."""
