@@ -34,54 +34,54 @@ MANIFEST
 *.spec
 
 # Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
+37: pip-log.txt
+38: pip-delete-this-directory.txt
 
 # test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-cover/
+41: htmlcov/
+42: .tox/
+43: .nox/
+44: .coverage
+45: .coverage.*
+46: .cache
+47: nosetests.xml
+48: coverage.xml
+49: *.cover
+50: *.py,cover
+51: .hypothesis/
+52: .pytest_cache/
+53: cover/
 
 # Translations
-*.mo
-*.pot
+56: *.mo
+57: *.pot
 
 # Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
+60: *.log
+61: local_settings.py
+62: db.sqlite3
+63: db.sqlite3-journal
 
 # Flask stuff:
-instance/
-.webassets-cache
+66: instance/
+67: .webassets-cache
 
 # Scrapy stuff:
-.scrapy
+70: .scrapy
 
 # Sphinx documentation
-docs/_build/
+73: docs/_build/
 
 # PyBuilder
-.pybuilder/
-target/
+76: .pybuilder/
+77: target/
 
 # Jupyter Notebook
-.ipynb_checkpoints
+80: .ipynb_checkpoints
 
 # IPython
-profile_default/
-ipython_config.py
+83: profile_default/
+84: ipython_config.py
 
 # pyenv
 #   For a library or package, you might want to ignore these files since the code is
@@ -96,47 +96,47 @@ ipython_config.py
 #Pipfile.lock
 
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow
-__pypackages__/
+99: __pypackages__/
 
 # Celery stuff
-celerybeat-schedule
-celerybeat.pid
+102: celerybeat-schedule
+103: celerybeat.pid
 
 # SageMath parsed files
-*.sage.py
+106: *.sage.py
 
 # Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+109: .env
+110: .venv
+111: env/
+112: venv/
+113: ENV/
+114: env.bak/
+115: venv.bak/
 
 # Spyder project settings
-.spyderproject
-.spyproject
+118: .spyderproject
+119: .spyproject
 
 # Rope project settings
-.ropeproject
+122: .ropeproject
 
 # mkdocs documentation
-/site
+125: /site
 
 # mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
+128: .mypy_cache/
+129: .dmypy.json
+130: dmypy.json
 
 # Pyre type checker
-.pyre/
+133: .pyre/
 
 # pytype static type analyzer
-.pytype/
+136: .pytype/
 
 # Cython debug symbols
-cython_debug/
+139: cython_debug/
 
 # Meta-data as cloned following the README instructions
 /metadata/
