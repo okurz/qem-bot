@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 from logging import getLogger
-from pprint import pformat
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlencode, urlparse
 
@@ -136,7 +135,7 @@ class Commenter:
             self.commentapi.add_comment(comment=msg, request_id=request_id)
         else:
             log.info("Dry run: Would write comment to request %s", request_id)
-            log.debug(pformat(msg))
+            log.info("Dry run: Comment content:\n%s", msg)
 
     def osc_comment(self, sub: Submission, msg: str, state: str) -> None:
         """Comment a submission in OBS."""
@@ -176,7 +175,7 @@ class Commenter:
 
         if self.dry:
             log.info("Dry run: Would write/update comment to PR %s", sub)
-            log.debug(pformat(msg))
+            log.info("Dry run: Comment content:\n%s", msg)
             return
 
         # Unlike OBS (delete + add), Gitea supports PATCH to update in-place,
