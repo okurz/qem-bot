@@ -21,16 +21,17 @@ class BuildIdentifier(NamedTuple):
     build: str
     distri: str
     version: str
+    flavor: str
 
     @classmethod
     def from_job(cls, job: dict[str, Any]) -> BuildIdentifier:
         """Create a BuildIdentifier from an openQA job dictionary."""
-        return cls(job["build"], job.get("distri", ""), job.get("version", ""))
+        return cls(job["build"], job.get("distri", ""), job.get("version", ""), job.get("flavor", ""))
 
     @classmethod
     def from_params(cls, params: dict[str, str]) -> BuildIdentifier:
         """Create a BuildIdentifier from scheduling parameters."""
-        return cls(params["BUILD"], params["DISTRI"], params["VERSION"])
+        return cls(params["BUILD"], params["DISTRI"], params["VERSION"], params["FLAVOR"])
 
     def get_base_badge_params(self) -> dict[str, str]:
         """Centralized openQA badge parameter construction."""

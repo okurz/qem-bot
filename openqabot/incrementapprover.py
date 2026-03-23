@@ -159,29 +159,43 @@ class IncrementApprover:
     def evaluate_openqa_job_results(
         self,
         results: OpenQAResult,
+        params: dict[str, str],
         ok_jobs: set[int],
         not_ok_jobs: dict[str, set[str]],
         jobs: list[dict[str, Any]],
         request: osc.core.Request,
     ) -> None:
         """Evaluate openQA job results and sort them into ok and not_ok sets."""
-        for result, info in chain.from_iterable(results.get(s, {}).items() for s in final_states):
-            ids = info["job_ids"]
-            common = {k: info.get(k) for k in ("group_id", "build", "distri", "version")}
-            jobs.extend({**common, "id": j, "status": result} for j in ids)
-            (ok_jobs if result in ok_results else not_ok_jobs[result]).update(ids)
-            self.check_unique_jobid_request_pair(ids, request)
+        all_items = chain.from_iterable(results.get(s, {}).items() for s in final_states)
+        for result, info in all_items:
+            # Filtering is now done upfront in process_build_info
+            job_ids = info["job_ids"]
+            jobs.extend(
+                {
+                    "id": job_id,
+                    "status": result,
+                    "group_id": info.get("group_id"),
+                    "build": info.get("build"),
+                    "distri": info.get("distri"),
+                    "version": info.get("version"),
+                    "flavor": params["FLAVOR"],
+                }
+                for job_id in job_ids
+            )
+            destination = ok_jobs if result in ok_results else not_ok_jobs[result]
+            self.check_unique_jobid_request_pair(job_ids, request)
+            destination.update(job_ids)
 
     def evaluate_list_of_openqa_job_results(
-        self, list_of_results: OpenQAResults, request: osc.core.Request
+        self, list_of_results: OpenQAResults, params: ScheduleParams, request: osc.core.Request
     ) -> tuple[set[int], list[str], list[dict[str, Any]]]:
         """Evaluate a list of openQA job results."""
         ok_jobs = set()  # keep track of ok jobs
         not_ok_jobs = defaultdict(set)  # keep track of not ok jobs
         jobs: list[dict[str, Any]] = []
         openqa_url = self.client.url.geturl()
-        for results in list_of_results:
-            self.evaluate_openqa_job_results(results, ok_jobs, not_ok_jobs, jobs, request)
+        for results, p in zip(list_of_results, params):
+            self.evaluate_openqa_job_results(results, p, ok_jobs, not_ok_jobs, jobs, request)
         reasons_to_disapprove = [
             f"The following openQA jobs ended up with result '{result}':\n"
             + "\n".join(f" - {openqa_url}/tests/{i}" for i in job_ids)
@@ -506,7 +520,7 @@ class IncrementApprover:
 
         openqa_jobs_ready = self.check_openqa_jobs(filtered_results, build_info, params)
         if openqa_jobs_ready:
-            ok_jobs, reasons, jobs = self.evaluate_list_of_openqa_job_results(filtered_results, request)
+            ok_jobs, reasons, jobs = self.evaluate_list_of_openqa_job_results(filtered_results, params, request)
             builds = {BuildIdentifier.from_params(p) for p in params if "BUILD" in p}
             approval_status.add(ok_jobs, reasons, builds, jobs)
             return 0

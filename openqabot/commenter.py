@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from logging import getLogger
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlencode, urlparse
@@ -201,10 +202,18 @@ class Commenter:
     def _generate_badge_section(self, builds: set[BuildIdentifier]) -> str:
         """Generate markdown for openQA badges."""
         base_url = self.client.openqa.baseurl
+        # Group by (build, distri, version)
+        grouped = defaultdict(set)
+        for b in builds:
+            grouped[(b.build, b.distri, b.version)].add(b.flavor)
+
         badge_msg = ""
-        for b in sorted(builds):
-            params = b.get_base_badge_params()
-            label = f"Build {b.build}"
+        for (build, distri, version), flavors in sorted(grouped.items()):
+            params = BuildIdentifier(build, distri, version, "").get_base_badge_params()
+            if flavors:
+                params["flavor"] = ",".join(sorted(f for f in flavors if f))
+
+            label = f"Build {build}"
             params["label"] = label
             query = urlencode(params, safe="*")
             badge_url = f"{base_url}/tests/overview/badge?{query}"
@@ -231,7 +240,19 @@ class Commenter:
         detail_msg += "\n".join(table_rows)
 
         if excluded_count > 0:
-            params = sorted_builds[0].get_base_badge_params()
+            # When linking to overview for many groups, we link to the first build's overview
+            # containing all its flavors.
+            # Grouping builds by (build, distri, version) again to get all flavors of first build.
+            grouped = defaultdict(set)
+            for b in sorted_builds:
+                grouped[(b.build, b.distri, b.version)].add(b.flavor)
+
+            (build, distri, version), flavors = sorted(grouped.items())[0]
+
+            params = BuildIdentifier(build, distri, version, "").get_base_badge_params()
+            if flavors:
+                params["flavor"] = ",".join(sorted(f for f in flavors if f))
+
             query = urlencode(params, safe="*")
             overview_link = f"{base_url}/tests/overview?{query}"
             detail_msg += (
@@ -263,36 +284,45 @@ class Commenter:
                     "build": job.get("build", ""),
                     "distri": job.get("distri", ""),
                     "version": job.get("version", ""),
-                    "status": status,
-                }
-                if group_info:
-                    groups[group_id]["contact"] = extract_contact_from_description(group_info.get("description"))
-
-        return [
-            {
-                "id": g["id"],
-                "name": (name := str(g["name"])),
-                "contact": g["contact"],
-                "build": g["build"],
-                "status": g["status"],
-                "overview_url": self._generate_overview_url(base_url, g, name),
-                "badge_url": self._generate_overview_url(base_url, g, name, badge=True, label=name),
+                "status": status,
+                "flavor": job.get("flavor", ""),
             }
-            for g in groups.values()
-        ]
+            if group_info:
+                groups[group_id]["contact"] = extract_contact_from_description(group_info.get("description"))
 
-    @staticmethod
-    def _generate_overview_url(
-        base_url: str, group: dict[str, Any], group_name: str, *, badge: bool = False, label: str | None = None
-    ) -> str:
-        """Generate overview or badge URL for a specific job group."""
-        params = BuildIdentifier(
-            group.get("build", ""), group.get("distri", ""), group.get("version", "")
-        ).get_base_badge_params()
-        params["group"] = group_name
-        if label:
-            params["label"] = label
+    return [
+        {
+            "id": g["id"],
+            "name": (name := str(g["name"])),
+            "contact": g["contact"],
+            "build": g["build"],
+            "status": g["status"],
+            "overview_url": _generate_overview_url(base_url, g, name),
+            "badge_url": _generate_overview_url(base_url, g, name, badge=True, label=name),
+        }
+        for g in groups.values()
+    ]
 
-        query = urlencode(params, safe="*")
-        path = "/tests/overview/badge" if badge else "/tests/overview"
-        return f"{base_url}{path}?{query}"
+
+def _generate_overview_url(
+    base_url: str, group: dict[str, Any], group_name: str, *, badge: bool = False, label: str | None = None
+) -> str:
+    """Generate overview or badge URL for a specific job group."""
+    params = BuildIdentifier(
+        group.get("build", ""),
+        group.get("distri", ""),
+        group.get("version", ""),
+        group.get("flavor", ""),
+    ).get_base_badge_params()
+
+    if flavor := group.get("flavor"):
+        params["flavor"] = flavor
+
+    params["group"] = group_name
+    if label:
+        params["label"] = label
+
+    query = urlencode(params, safe="*")
+    path = "/tests/overview/badge" if badge else "/tests/overview"
+    return f"{base_url}{path}?{query}"
+

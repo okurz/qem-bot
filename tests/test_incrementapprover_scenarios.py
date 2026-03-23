@@ -244,7 +244,8 @@ def test_evaluate_list_of_openqa_job_results(
         {"done": {"passed": {"job_ids": [1]}, "failed": {"job_ids": [2]}}},
         {"done": {"softfailed": {"job_ids": [3]}, "incomplete": {"job_ids": [4]}}},
     ]
-    ok_jobs, reasons, jobs = approver.evaluate_list_of_openqa_job_results(results, fake_osc_request)
+    params = [{"DISTRI": "d", "VERSION": "v", "FLAVOR": "f", "ARCH": "a", "BUILD": "b"}] * 2
+    ok_jobs, reasons, jobs = approver.evaluate_list_of_openqa_job_results(results, params, fake_osc_request)
     assert ok_jobs == {1, 3}
     assert len(jobs) == 4
     assert any(f"result 'failed':\n - {fake_openqa_url}/tests/2" in r for r in reasons)
@@ -601,8 +602,16 @@ def test_handle_approval_with_comment_flag(
         ok_jobs={1, 2},
         reasons_to_disapprove=[],
         processed_jobs=set(),
-        builds={BuildIdentifier("fake_build", "fake_distri", "fake_version")},
-        jobs=[{"build": "fake_build", "distri": "fake_distri", "version": "fake_version", "status": "passed"}],
+        builds={BuildIdentifier("fake_build", "fake_distri", "fake_version", "fake_flavor")},
+        jobs=[
+            {
+                "build": "fake_build",
+                "distri": "fake_distri",
+                "version": "fake_version",
+                "flavor": "fake_flavor",
+                "status": "passed",
+            }
+        ],
     )
 
     approver.handle_approval(status)

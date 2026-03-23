@@ -158,7 +158,9 @@ class GiteaTrigger:
         try:
             jobs = self.openqa.get_jobs(data)
             for j in jobs:
+            for j in jobs:
                 j.setdefault("build", data.build)
+                j.setdefault("flavor", data.flavor)
         except (requests.exceptions.RequestException, RequestError):
             log.exception("Failed to fetch jobs for PR %s", pullrequest.number)
             return
