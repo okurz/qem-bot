@@ -179,6 +179,8 @@ def __getattr__(name: str) -> Any:  # noqa: ANN401
             r"(?P<product>.*)-(?P<version>[^\-]*?)-(?P<flavor>\D+[^\-]*?)-"
             r"(?P<arch>[^\-]*?)-Build(?P<build>.*?)\.spdx.json"
         )
+    if name == "INCREMENT_BUILD_EXCLUDE_SUFFIXES":
+        return ("-Source", "-Debug")
     if name == "OBSOLETE_PARAMS":
         return {
             "_OBSOLETE": "1",
