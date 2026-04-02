@@ -21,4 +21,4 @@ def test_git_approve_no_project(caplog: pytest.LogCaptureFixture) -> None:
     sub = SubReq(sub=1, req=100, type="git", url=None, submission=None)
     caplog.set_level(logging.ERROR)
     assert not approver_instance.git_approve(sub, "msg")
-    assert "Gitea API error: PR 1 has no project (repo_name)" in caplog.text
+    assert "Gitea API error: PR 1 has no project" in caplog.text

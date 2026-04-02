@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: MIT
 """Gitea Pullrequest type definition."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from logging import getLogger
 from typing import Any, Protocol, Self
@@ -31,6 +33,11 @@ class CommentableProtocol(Protocol):
         """Format a link with an optional image badge."""
         ...
 
+    @property
+    def project(self) -> str:
+        """The project/repository of the pull request."""
+        ...
+
 
 class OBSCommentable:
     """Implement CommentableProtocol for OBS requests/incidents."""
@@ -53,6 +60,11 @@ class OBSCommentable:
     ) -> str:
         """Format a link with an optional image badge."""
         return f"[{label}]({url})"
+
+    @property
+    def project(self) -> str:
+        """The project of the OBS request."""
+        return ""
 
 
 @dataclass

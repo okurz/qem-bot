@@ -7,7 +7,7 @@ from __future__ import annotations
 from logging import getLogger
 from pprint import pformat
 from typing import TYPE_CHECKING, Any
-from urllib.parse import urlencode, urlparse
+from urllib.parse import quote, urlencode, urlparse
 
 import osc.conf
 
@@ -164,9 +164,8 @@ class Commenter:
             log.warning("Submission %s has no URL, skipping Gitea comment", sub)
             return
 
-        # Derive owner/repo from the PR URL (e.g. https://host/owner/repo/pulls/N)
-        # sub.project holds the OBS project name, not the Gitea owner/repo path.
-        repo = "/".join(urlparse(sub.url).path.strip("/").split("/")[:2])
+        # use repo/project name from PullRequest or Submission object
+        repo = sub.project
 
         # Add a marker so we can find our own comments later
         msg = add_marker(msg, "openqa", {"state": state})

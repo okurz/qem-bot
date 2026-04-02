@@ -82,6 +82,7 @@ def mock_git_sub() -> MagicMock:
     sub.id = 123
     sub.type = "git"
     sub.url = "https://src.suse.de/owner/repo/pulls/123"
+    sub.project = "owner/repo"
     sub.__str__ = MagicMock(return_value="git:123")
     return sub
 

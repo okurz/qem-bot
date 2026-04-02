@@ -484,6 +484,6 @@ class Approver:
     def git_approve(self, sub: SubReq, msg: str) -> bool:
         """Approve a submission in Gitea."""
         if not sub.submission or not getattr(sub.submission, "project", None):
-            log.error("Gitea API error: PR %s has no project (repo_name)", sub.sub)
+            log.error("Gitea API error: PR %s has no project", sub.sub)
             return False
         return approve_pr(self.gitea_token, sub.submission.project, sub.sub, sub.scm_info or "", msg)

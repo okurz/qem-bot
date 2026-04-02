@@ -493,7 +493,7 @@ def test_comment_on_pr_dry_run_approves(
     cast("MagicMock", trigger.openqa.get_jobs).return_value = mock_jobs
     cast("MagicMock", trigger.commenter.generate_comment).return_value = ("Summary", "passed")
 
-    mock_pr = MagicMock(number=123, url="http://fake.url/123", commit_sha="sha123", repo_name="fake_repo")
+    mock_pr = MagicMock(number=123, url="http://fake.url/123", commit_sha="sha123", project="fake_repo")
     mock_iso = MagicMock()
     mock_iso.product = "product"
     mock_iso.version = "version"

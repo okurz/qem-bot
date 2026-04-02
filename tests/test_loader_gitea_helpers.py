@@ -17,7 +17,7 @@ from openqabot.types.pullrequest import PullRequest
 @pytest.fixture
 def labeled_pr(mocker: MockerFixture) -> PullRequest:
     mock_pr = mocker.Mock()
-    mock_pr.repo_name = "products/sle"
+    mock_pr.project = "products/sle"
     mock_pr.branch = "main"
     mock_pr.number = 555
     mock_pr.labels = {"label1"}

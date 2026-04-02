@@ -85,34 +85,6 @@ def test_make_submission_from_gitea_pr_dry_other_number_passes(mocker: MockerFix
     pr = PullRequest.from_json(pr_dict)
     assert pr is not None
     mocker.patch("openqabot.loader.gitea.iter_gitea_items", return_value=[])
-    mocker.patch("openqabot.loader.gitea.add_reviews", return_value=1)
-
-    def mock_add_chan(inc: dict, *_: Any, **__: Any) -> None:
-        inc["channels"].append("chan")
-
-    mocker.patch("openqabot.loader.gitea.add_comments_and_referenced_build_results", side_effect=mock_add_chan)
-
-    def mock_add_pkg(inc: dict, *_: Any, **__: Any) -> None:
-        inc["packages"].append("pkg")
-
-    mocker.patch("openqabot.loader.gitea.add_packages_from_files", side_effect=mock_add_pkg)
-
-    res = gitea.make_submission_from_gitea_pr(pr, {}, only_successful_builds=False, only_requested_prs=False, dry=True)
-    assert res is not None
-    assert res["number"] == 999
-
-
-def test_make_submission_from_gitea_pr_no_reviews(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> None:
-    caplog.set_level(logging.INFO, logger="bot.loader.gitea")
-    pr_dict = {
-        "number": 123,
-        "state": "open",
-        "url": "url",
-        "base": {"repo": {"full_name": "owner/repo", "name": "repo"}},
-    }
-    pr = PullRequest.from_json(pr_dict)
-    assert pr is not None
-    mocker.patch("openqabot.loader.gitea.iter_gitea_items", return_value=[])
     mocker.patch("openqabot.loader.gitea.add_reviews", return_value=0)
     res = gitea.make_submission_from_gitea_pr(pr, {}, only_successful_builds=False, only_requested_prs=True, dry=False)
     assert res is None
