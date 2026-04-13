@@ -686,6 +686,13 @@ def increment_approve(  # ruff: ignore[too-many-arguments]
             help="Filter out jobs in development groups when evaluating results",
         ),
     ] = True,
+    evaluate: Annotated[
+        bool,
+        typer.Option(
+            "--evaluate/--no-evaluate",
+            help="Fetch and evaluate openQA job results",
+        ),
+    ] = True,
     comment: comment_option = True,
     enable_detailed_comments: enable_detailed_comments_option = None,
     fallback_contact: fallback_contact_option = None,
@@ -711,6 +718,7 @@ def increment_approve(  # ruff: ignore[too-many-arguments]
     args.product_regex = product_regex
     args.increment_config = increment_config
     args.approve = approve
+    args.evaluate = evaluate
     args.devel_filter = devel_filter
     args.comment = comment
 

@@ -632,3 +632,34 @@ def test_handle_approval_with_comment_flag(
     assert args[0] == "42"
     assert args[2] == "passed"
     assert "fake_build" in args[1]
+
+
+@responses.activate
+@pytest.mark.usefixtures("fake_product_repo", "mock_osc")
+def test_no_evaluate_skips_openqa_calls(mocker: MockerFixture, caplog: pytest.LogCaptureFixture) -> None:
+    approver = prepare_approver(caplog)
+    approver.args.evaluate = False
+    approver.args.schedule = True
+
+    mock_post_job = mocker.patch("openqabot.openqa.OpenQAInterface.post_job")
+    mock_stats = mocker.patch("openqabot.openqa.OpenQAInterface.get_scheduled_product_stats")
+
+    approver()
+
+    mock_stats.assert_not_called()
+    assert mock_post_job.called
+    assert "Checking openQA job results" not in caplog.text
+
+
+@responses.activate
+@pytest.mark.usefixtures("fake_ok_jobs", "fake_product_repo", "mock_osc")
+def test_no_approve_no_comment_silences_approval_logs(caplog: pytest.LogCaptureFixture) -> None:
+    approver = prepare_approver(caplog)
+    approver.args.approve = False
+    approver.comment = False
+
+    approver()
+
+    assert "Approving OBS request" not in caplog.text
+    assert "Approval skipped for" not in caplog.text
+    assert "Not approving OBS request" not in caplog.text

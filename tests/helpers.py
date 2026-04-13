@@ -242,7 +242,9 @@ def prepare_approver(
         fake_data=True,
         increment_config=None,
         approve=True,
+        evaluate=True,
         devel_filter=True,
+        comment=False,
         packages=[] if config is None else config.packages,
         archs=set() if config is None else config.archs,
         settings={} if config is None else config.settings,
@@ -371,7 +373,9 @@ def make_approver_args(**kwargs: Any) -> Namespace:
         "dry": False,
         "all_submissions": False,
         "approve": True,
+        "evaluate": True,
         "devel_filter": True,
+        "comment": False,
     }
     defaults.update(kwargs)
     return Namespace(**defaults)

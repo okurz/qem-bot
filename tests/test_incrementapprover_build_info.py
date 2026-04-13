@@ -186,3 +186,22 @@ def test_extra_builds_package_version_regex_no_match(caplog: pytest.LogCaptureFi
     build_info = BuildInfo("sle", "SLES", "16.0", "flavor", "arch", "1.1")
     res = approver.extra_builds_for_package(package, config, build_info)
     assert res is None
+
+
+def testload_build_info_flavor_none_logic(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -> None:
+    prepare_approver(caplog)
+    config = IncrementConfig(
+        distri="sle",
+        version="16.0",
+        flavor="any",
+        project_base="BASE",
+        build_project_suffix="TEST",
+        build_regex=r"(?P<product>SLES)-(?P<version>16.0)-(?:(?P<flavor>)-)?(?P<arch>x86_64)-Build(?P<build>1.1)\.spdx\.json",
+    )
+    # Filename where flavor group exists but matches nothing (optional group)
+    mocker.patch("openqabot.loader.buildinfo.retried_requests.get").return_value.json.return_value = {
+        "data": [{"name": "SLES-16.0-x86_64-Build1.1.spdx.json"}]
+    }
+    # This should trigger line 64 if flavor is None
+    res = load_build_info(config, config.build_regex, get_regex_match)
+    assert len(res) == 1

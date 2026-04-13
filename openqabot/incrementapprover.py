@@ -514,6 +514,9 @@ class IncrementApprover:
             approval_status.reasons_to_disapprove.append(f"Re-scheduling jobs for {info_str}")
             return self.schedule_openqa_jobs(build_info, params)
 
+        if not self.args.evaluate:
+            return self.schedule_openqa_jobs(build_info, params) if self.args.schedule else 0
+
         log.debug(
             "Prepared scheduling parameters: %s\nRequesting openQA job results for "
             "OBS request %s/request/show/%s for %s",
@@ -609,6 +612,8 @@ class IncrementApprover:
             for config_inc in configs:
                 error_count += self.process_request_for_config(request, config_inc, build_infos, resolved_obs_url)
 
+        if not (self.args.approve or self.comment):
+            return error_count
         for request in self.requests_to_approve.values():
             error_count += self.handle_approval(request)
         return error_count

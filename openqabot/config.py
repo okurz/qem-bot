@@ -84,6 +84,7 @@ class Settings(BaseSettings):
     max_workers: int | None = Field(default=None, alias="QEM_BOT_MAX_WORKERS")
     approve_comment: bool = Field(default=False, alias="QEM_BOT_APPROVE_COMMENT")
     approve: bool = Field(default=True, alias="QEM_BOT_APPROVE")
+    evaluate: bool = Field(default=True, alias="QEM_BOT_EVALUATE")
     devel_filter: bool = Field(default=True, alias="QEM_BOT_DEVEL_FILTER")
 
     # App-specific settings
