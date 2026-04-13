@@ -83,6 +83,8 @@ class Settings(BaseSettings):
     retry: int = Field(default=2, alias="QEM_BOT_RETRY")
     max_workers: int | None = Field(default=None, alias="QEM_BOT_MAX_WORKERS")
     approve_comment: bool = Field(default=False, alias="QEM_BOT_APPROVE_COMMENT")
+    approve: bool = Field(default=True, alias="QEM_BOT_APPROVE")
+    devel_filter: bool = Field(default=True, alias="QEM_BOT_DEVEL_FILTER")
 
     # App-specific settings
     qem_dashboard_url: str = Field(default="http://dashboard.qam.suse.de/", alias="QEM_DASHBOARD_URL")

@@ -162,6 +162,23 @@ def test_increment_approve(mocker: MockerFixture, tmp_path: Path) -> None:
     result = runner.invoke(app, ["--token", "foo", "--configs", str(tmp_path), "increment-approve"])
     assert result.exit_code == 0
     approve.assert_called_once()
+    args = approve.call_args[0][0]
+    assert args.approve is True
+    assert args.devel_filter is True
+
+
+def test_increment_approve_no_flags(mocker: MockerFixture, tmp_path: Path) -> None:
+    approve = mocker.patch("openqabot.args.IncrementApprover")
+    approve.return_value.return_value = 0
+    result = runner.invoke(
+        app,
+        ["--token", "foo", "--configs", str(tmp_path), "increment-approve", "--no-approve", "--no-devel-filter"],
+    )
+    assert result.exit_code == 0
+    approve.assert_called_once()
+    args = approve.call_args[0][0]
+    assert args.approve is False
+    assert args.devel_filter is False
 
 
 def test_increment_approve_with_detailed_args(mocker: MockerFixture, tmp_path: Path) -> None:

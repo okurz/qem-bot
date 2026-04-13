@@ -672,6 +672,20 @@ def increment_approve(  # ruff: ignore[too-many-arguments]
             help="Use configuration from the specified YAML document instead of arguments",
         ),
     ] = None,
+    approve: Annotated[
+        bool,
+        typer.Option(
+            "--approve/--no-approve",
+            help="Approve the product increment on OBS/IBS if all tests passed",
+        ),
+    ] = True,
+    devel_filter: Annotated[
+        bool,
+        typer.Option(
+            "--devel-filter/--no-devel-filter",
+            help="Filter out jobs in development groups when evaluating results",
+        ),
+    ] = True,
     comment: comment_option = True,
     enable_detailed_comments: enable_detailed_comments_option = None,
     fallback_contact: fallback_contact_option = None,
@@ -696,6 +710,8 @@ def increment_approve(  # ruff: ignore[too-many-arguments]
     args.build_regex = build_regex
     args.product_regex = product_regex
     args.increment_config = increment_config
+    args.approve = approve
+    args.devel_filter = devel_filter
     args.comment = comment
 
     _apply_detailed_comment_options(
@@ -706,8 +722,8 @@ def increment_approve(  # ruff: ignore[too-many-arguments]
         max_detailed_comment_entries=max_detailed_comment_entries,
     )
 
-    approve = IncrementApprover(args)
-    sys.exit(approve())
+    approve_obj = IncrementApprover(args)
+    sys.exit(approve_obj())
 
 
 @app.command("repo-diff")

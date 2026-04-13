@@ -241,6 +241,8 @@ def prepare_approver(
         product_regex=".*",
         fake_data=True,
         increment_config=None,
+        approve=True,
+        devel_filter=True,
         packages=[] if config is None else config.packages,
         archs=set() if config is None else config.archs,
         settings={} if config is None else config.settings,
@@ -269,6 +271,7 @@ def prepare_approver(
                 for jid in ids
             ]
         )
+        approver.client.is_in_devel_group = MagicMock(return_value=False)
         approver.client.is_devel_group = MagicMock(return_value=False)
         return approver
 
@@ -367,6 +370,8 @@ def make_approver_args(**kwargs: Any) -> Namespace:
         "token": "dummy_token",
         "dry": False,
         "all_submissions": False,
+        "approve": True,
+        "devel_filter": True,
     }
     defaults.update(kwargs)
     return Namespace(**defaults)

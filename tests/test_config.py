@@ -136,3 +136,35 @@ def test_load_config_yml_malformed_is_ignored(tmp_path: Path, content: str, reas
     settings = Settings()
     settings.load_config_yml(tmp_path)
     assert settings.retry == Settings().retry, reason
+
+
+def test_approve_flag() -> None:
+    """Test the approve flag setting."""
+    settings = Settings(approve=True)
+    assert settings.approve is True
+
+    settings = Settings(approve=False)
+    assert settings.approve is False
+
+
+def test_devel_filter_flag() -> None:
+    """Test the devel_filter flag setting."""
+    settings = Settings(devel_filter=True)
+    assert settings.devel_filter is True
+
+    settings = Settings(devel_filter=False)
+    assert settings.devel_filter is False
+
+
+def test_approve_env_override() -> None:
+    """Test environment variable override for approve."""
+    with patch.dict("os.environ", {"QEM_BOT_APPROVE": "False"}):
+        settings = Settings()
+        assert settings.approve is False
+
+
+def test_devel_filter_env_override() -> None:
+    """Test environment variable override for devel_filter."""
+    with patch.dict("os.environ", {"QEM_BOT_DEVEL_FILTER": "False"}):
+        settings = Settings()
+        assert settings.devel_filter is False
