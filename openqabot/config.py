@@ -127,6 +127,9 @@ class Settings(BaseSettings):
         default="Contact qem-bot maintainers for generic questions", alias="QEM_GENERIC_TOOL_ISSUES_CONTACT"
     )
     max_detailed_comment_entries: int = Field(default=7, alias="QEM_MAX_DETAILED_COMMENT_ENTRIES")
+    increment_build_exclude_suffixes: list[str] = Field(
+        default=["-Debug", "-Source"], alias="INCREMENT_BUILD_EXCLUDE_SUFFIXES"
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -207,7 +210,7 @@ def __getattr__(name: str) -> Any:  # ruff: ignore[any-type]
     if name == "BUILD_REGEX":
         return (
             r"(?P<product>.*?)-(?P<version>[^\-]*?)-(?:(?P<flavor>\D+[^\-]*?)-)?"
-            r"(?P<arch>[^\-]*?)-Build(?P<build>.*?)\.spdx\.json"
+            r"(?P<arch>[^\-]*?)-Build(?P<build>[^-]+?)\.spdx\.json"
         )
     if name == "OBSOLETE_PARAMS":
         return {
