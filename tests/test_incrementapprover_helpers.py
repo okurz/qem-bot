@@ -10,7 +10,7 @@ import pytest
 import responses
 
 from openqabot.errors import PostOpenQAError
-from openqabot.incrementapprover import BuildInfo
+from openqabot.incrementapprover import BuildInfo, get_regex_match
 from openqabot.repodiff import Package
 
 from .helpers import prepare_approver
@@ -22,8 +22,8 @@ if TYPE_CHECKING:
 @responses.activate
 @pytest.mark.usefixtures("fake_product_repo")
 def testget_regex_match_invalid_pattern(caplog: pytest.LogCaptureFixture) -> None:
-    approver = prepare_approver(caplog)
-    approver.get_regex_match("[", "some string")
+    prepare_approver(caplog)
+    get_regex_match("[", "some string")
     assert "Pattern `[` did not compile successfully" in caplog.text
 
 
@@ -158,3 +158,15 @@ def test_request_openqa_job_results_enrichment_missing_data(
 
     assert len(res) == 1
     assert "done" in res[0]
+
+
+def test_filter_results_no_devel_filter(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -> None:
+    approver = prepare_approver(caplog)
+    approver.args.devel_filter = False
+    mock_is_devel = mocker.patch.object(approver.client, "is_in_devel_group")
+
+    results = [{"passed": {"j1": {"job_ids": [1]}, "j2": {"job_ids": [1, 2]}}, "failed": {"j3": {"job_ids": [2]}}}]
+    # All jobs should be kept, including failed ones
+    expected = results
+    assert approver._filter_results(results) == expected  # noqa: SLF001
+    mock_is_devel.assert_not_called()

@@ -10,9 +10,9 @@ from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
-import typer
 from typer.testing import CliRunner
 
+import typer
 from openqabot.args import app, main
 from openqabot.config import settings
 

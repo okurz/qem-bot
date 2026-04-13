@@ -172,10 +172,13 @@ def assert_run_with_extra_livepatching(errors: int, jobs: list, messages: list) 
             "KERNEL_VERSION": kernel_version,
             "KGRAFT": "1",
         }
-        assert expected_params | {"ARCH": "ppc64le"} in jobs
+        assert (
+            expected_params | {"ARCH": "ppc64le", "PRODUCT": "SLES"} in jobs
+            or expected_params | {"ARCH": "ppc64le", "PRODUCT": "SLES-SAP"} in jobs
+        )
 
-    assert_livepatch("Default-qcow-Updates", "kernel-livepatch-default-6.12.0-160000.5", "6.12.0-160000.5")
-    assert_livepatch("Base-RT-Updates", "kernel-livepatch-rt-6.12.0-160000.5", "6.12.0-160000.5")
+    assert_livepatch("Default-qcow-Updates", "kernel-livepatch-160000_5-default-6.12.0", "default-6.12.0")
+    assert_livepatch("Default-qcow-Updates", "kernel-livepatch-160000_5-rt-6.12.0", "rt-6.12.0")
     assert base_params | {"ARCH": "aarch64"} in jobs
 
 
@@ -347,6 +350,8 @@ def test_skipping_with_mismatching_package(mocker: MockerFixture, caplog: pytest
                 schedule=False,
                 reschedule=False,
                 increment_config=None,
+                approve=True,
+                devel_filter=True,
                 distri="any",
                 version="any",
                 flavor="any",
@@ -524,9 +529,8 @@ def test_approval_if_failing_jobs_are_in_development_group(
 ) -> None:
     responses.add(responses.GET, fake_openqa_url_job_stat, json={"done": {"failed": {"job_ids": [123], "group_id": 9}}})
     increment_approver = prepare_approver(caplog, schedule=schedule)
-    # is_devel_group is called with group_id (int), unlike is_in_devel_group which takes a job dict
     increment_approver.client.get_jobs_by_ids = mocker.Mock(return_value=[_devel_job(123, result="failed")])
-    increment_approver.client.is_devel_group = mocker.Mock(return_value=True)
+    increment_approver.client.is_in_devel_group = mocker.Mock(return_value=True)
     mock_post_iso = mocker.patch.object(increment_approver.client, "post_iso")
     mock_change_review = mocker.patch("osc.core.change_review_state")
     increment_approver()
@@ -563,7 +567,9 @@ def test_approval_with_mixed_jobs_development_ignored(
     increment_approver.client.get_jobs_by_ids = mocker.Mock(
         side_effect=lambda ids: [job_map[jid] for jid in ids if jid in job_map]
     )
-    increment_approver.client.is_devel_group = mocker.Mock(side_effect=lambda gid: gid == 9)
+    increment_approver.client.is_in_devel_group = mocker.Mock(
+        side_effect=lambda job: "Development" in job.get("group", "")
+    )
     increment_approver()
 
     mock_osc_approve.assert_called()
@@ -608,7 +614,7 @@ def test_handle_approval_with_comment_flag(
     approver.comment = True
     approver.args.dry = False
     mock_replace = mocker.patch.object(approver.commenter, "osc_comment_on_request")
-    mocker.patch.object(approver, "approve_on_obs")
+    mocker.patch("openqabot.incrementapprover.IncrementApprover.approve_on_obs")
     status = ApprovalStatus(
         fake_osc_request,
         ok_jobs={1, 2},

@@ -136,6 +136,8 @@ def testhandle_approval_dry(caplog: pytest.LogCaptureFixture, mocker: MockerFixt
         product_regex=".*",
         fake_data=True,
         increment_config=None,
+        approve=True,
+        devel_filter=True,
         packages=[],
         archs=set(),
         settings={},
@@ -162,6 +164,31 @@ def testhandle_approval_dry(caplog: pytest.LogCaptureFixture, mocker: MockerFixt
             "Approving OBS request https://build.suse.de/request/show/123: All 1 openQA jobs have passed/softfailed"
             in caplog.text
         )
+
+
+def testhandle_approval_no_approve(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -> None:
+    caplog.set_level(logging.INFO)
+    approver = prepare_approver(caplog)
+    approver.args.approve = False
+    req = mocker.Mock(spec=osc.core.Request)
+    req.reqid = 123
+    status = ApprovalStatus(
+        req,
+        ok_jobs={1},
+        reasons_to_disapprove=[],
+        processed_jobs=set(),
+        builds=set(),
+        jobs=[],
+        obs_url=settings.obs_url,
+    )
+    mock_osc_change = mocker.patch("osc.core.change_review_state")
+
+    approver.handle_approval(status)
+    mock_osc_change.assert_not_called()
+    assert (
+        "Approval skipped for OBS request https://build.suse.de/request/show/123: "
+        "All 1 openQA jobs have passed/softfailed" in caplog.text
+    )
 
 
 def testapprove_on_obs_dry(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -> None:

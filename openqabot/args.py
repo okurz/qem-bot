@@ -11,9 +11,9 @@ from types import SimpleNamespace
 from typing import Annotated, Any
 
 import responses
-import typer
 
 import openqabot.config as config_module
+import typer
 
 from .aggrsync import AggregateResultsSync
 from .amqp import AMQP
