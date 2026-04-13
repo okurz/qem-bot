@@ -7,6 +7,7 @@ from __future__ import annotations
 from logging import getLogger
 from typing import TYPE_CHECKING, Any
 
+from openqabot import config as qem_config
 from openqabot.types.increment import BuildInfo
 from openqabot.utils import get_obs_filter_params
 from openqabot.utils import retry10 as retried_requests
@@ -46,6 +47,11 @@ def load_build_info(
         version = m.group("version")
         arch = m.group("arch")
         build = m.group("build")
+
+        if any(s in build for s in qem_config.settings.increment_build_exclude_suffixes):
+            log.debug("Skipping build '%s' matching exclude suffixes", build)
+            return None
+
         try:
             flavor = m.group("flavor")
             if flavor is None:
