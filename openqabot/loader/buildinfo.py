@@ -48,6 +48,8 @@ def load_build_info(
         build = m.group("build")
         try:
             flavor = m.group("flavor")
+            if flavor is None:
+                flavor = default_flavor
         except IndexError:
             flavor = default_flavor
         flavor = f"{flavor}-{config.flavor_suffix}"

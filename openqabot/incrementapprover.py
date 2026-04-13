@@ -408,7 +408,10 @@ class IncrementApprover:
         IncrementApprover.populate_params_from_env(base_params, "CI_JOB_URL")
         base_params.update(config_inc.settings)
         extra_params = []
-        if config_inc.diff_project_suffix != "none":
+        has_repo_diff = config_inc.diff_project_suffix != "none" or (
+            build_info and build_info.flavor in config_inc.reference_repos
+        )
+        if has_repo_diff:
             package_diff = self.get_package_diff_from_repo(config_inc, repo_sub_path, build_info)
             relevant_diff = package_diff[build_info.arch] | package_diff["noarch"]
             # schedule base params if package filter is empty for matching

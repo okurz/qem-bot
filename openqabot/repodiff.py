@@ -47,7 +47,7 @@ class Package(NamedTuple):
     @property
     def is_initial_version(self) -> bool:
         """Check if package is an initial version."""
-        return bool(self.version and re.match(r"^1(?:\..*)?$", self.version))
+        return bool(self.version and re.match(r"^1(?:[\.-].*)?$", self.version))
 
     @property
     def is_placeholder(self) -> bool:
