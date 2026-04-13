@@ -206,8 +206,8 @@ def __getattr__(name: str) -> Any:  # ruff: ignore[any-type]
         return getattr(settings, mapping[name])
     if name == "BUILD_REGEX":
         return (
-            r"(?P<product>.*)-(?P<version>[^\-]*?)-(?P<flavor>\D+[^\-]*?)-"
-            r"(?P<arch>[^\-]*?)-Build(?P<build>.*?)\.spdx.json"
+            r"(?P<product>.*?)-(?P<version>[^\-]*?)-(?:(?P<flavor>\D+[^\-]*?)-)?"
+            r"(?P<arch>[^\-]*?)-Build(?P<build>.*?)\.spdx\.json"
         )
     if name == "OBSOLETE_PARAMS":
         return {

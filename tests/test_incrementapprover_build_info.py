@@ -116,6 +116,45 @@ def testload_build_info_missing_flavor_group(caplog: pytest.LogCaptureFixture, m
     assert next(iter(res)).flavor == "Online-Increments"
 
 
+def testload_build_info_flavor_is_none(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -> None:
+    approver = prepare_approver(caplog)
+    config = IncrementConfig(
+        distri="sle",
+        version="16.0",
+        flavor="any",
+        project_base="BASE",
+        build_project_suffix="TEST",
+        build_regex=BUILD_REGEX,
+    )
+    mocker.patch("openqabot.loader.buildinfo.retried_requests.get").return_value.json.return_value = {
+        "data": [{"name": "SLES-16.0-x86_64-Build1.1.spdx.json"}]
+    }
+    res = load_build_info(
+        config, config.build_regex, config.product_regex, config.version_regex, approver.get_regex_match
+    )
+    assert len(res) == 1
+    assert next(iter(res)).flavor == "Online-Increments"
+
+
+def testload_build_info_not_matching_regex(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -> None:
+    approver = prepare_approver(caplog)
+    config = IncrementConfig(
+        distri="sle",
+        version="16.0",
+        flavor="any",
+        project_base="BASE",
+        build_project_suffix="TEST",
+        build_regex=BUILD_REGEX,
+    )
+    mocker.patch("openqabot.loader.buildinfo.retried_requests.get").return_value.json.return_value = {
+        "data": [{"name": "Not-A-Build.json"}]
+    }
+    res = load_build_info(
+        config, config.build_regex, config.product_regex, config.version_regex, approver.get_regex_match
+    )
+    assert res == set()
+
+
 def testload_build_info_filter_no_match(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -> None:
     approver = prepare_approver(caplog)
     config = IncrementConfig(
