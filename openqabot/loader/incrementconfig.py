@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 log = getLogger("bot.increment_config")
 DEFAULT_FLAVOR_SUFFIX = "Increments"
 DEFAULT_VERSION_REGEX = r"[\d.]+"
-TEMPLATE_VARS = ("base", "project", "version", "arch", "channel", "suffix", "product")
+TEMPLATE_VARS = ("base", "project", "version", "arch", "channel", "suffix", "product", "sub_path")
 
 
 @dataclass(frozen=True)
@@ -97,6 +97,7 @@ class IncrementConfig:
             "channel": build_info.flavor.removesuffix(f"-{self.flavor_suffix}"),
             "suffix": self.diff_project_suffix,
             "product": build_info.product,
+            "sub_path": self.build_listing_sub_path,
         }
 
     def render_build_url(self, base: str, build_info: BuildInfo) -> str:
@@ -149,12 +150,12 @@ class IncrementConfig:
             flavor=entry.get("flavor", "any"),
             arch=entry.get("arch", "any"),
             flavor_suffix=entry.get("flavor_suffix", DEFAULT_FLAVOR_SUFFIX),
-            project_base=entry["project_base"],
-            build_project_suffix=entry["build_project_suffix"],
-            diff_project_suffix=entry["diff_project_suffix"],
-            build_listing_sub_path=entry["build_listing_sub_path"],
-            build_regex=entry["build_regex"],
-            product_regex=entry["product_regex"],
+            project_base=entry.get("project_base", ""),
+            build_project_suffix=entry.get("build_project_suffix", ""),
+            diff_project_suffix=entry.get("diff_project_suffix", ""),
+            build_listing_sub_path=entry.get("build_listing_sub_path", ""),
+            build_regex=entry.get("build_regex", ""),
+            product_regex=entry.get("product_regex", ""),
             version_regex=entry.get("version_regex", DEFAULT_VERSION_REGEX),
             packages=entry.get("packages", []),
             archs=set(entry.get("archs", [])),

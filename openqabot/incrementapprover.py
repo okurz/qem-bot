@@ -364,6 +364,7 @@ class IncrementApprover:
             ref_repo = config_inc.reference_repos.get(build_info.product) or config_inc.reference_repos.get(
                 build_info.flavor
             )
+            )
             if ref_repo:
                 is_reference_repo = True
                 diff_url = config_inc.to_url(ref_repo)
