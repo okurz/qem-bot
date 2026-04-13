@@ -176,6 +176,10 @@ class Commenter:
         formatted = {str(c["id"]): {"id": c["id"], "comment": c["body"]} for c in comments}
         comment, info = self.commentapi.comment_find(formatted, "openqa")
 
+        if comment is None:
+            log.debug("No comment with state '%s', looking without state filter", state)
+            comment, _ = self.commentapi.comment_find(formatted, "openqa")
+
         # To prevent spam, assume same state/result
         # and number of lines in message is a duplicate message
         if comment and info and info.get("state") == state and comment["comment"].count("\n") == msg.count("\n"):
