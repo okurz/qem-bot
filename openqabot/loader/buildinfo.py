@@ -37,11 +37,11 @@ def load_build_info(
 
     def get_build_info_from_row(row: dict[str, Any]) -> BuildInfo | None:
         name = row.get("name", "")
-        log.debug("Found file: %s", name)
         m = get_regex_match(build_regex, name)
         if not m:
             return None
 
+        log.debug("Found file: %s", name)
         product = m.group("product")
         distri = config.distri
         version = m.group("version")
