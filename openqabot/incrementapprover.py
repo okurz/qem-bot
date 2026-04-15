@@ -471,8 +471,7 @@ class IncrementApprover:
             return p["DISTRI"], p["VERSION"], p["FLAVOR"], p["ARCH"], p["BUILD"], p.get("PRODUCT", "")
 
         params = [p for p in params if _k(p) not in approval_status.processed_jobs]
-        for p in params:
-            approval_status.processed_jobs.add(_k(p))
+        approval_status.processed_jobs.update(map(_k, params))
 
         if not params:
             return 0
@@ -544,15 +543,24 @@ class IncrementApprover:
             )
         return error_count
 
+    def _process_single_config(self, config_inc: IncrementConfig, single_request: osc.core.Request | None) -> int:
+        if single_request and single_request.actions[0].src_project != config_inc.build_project():
+            log.debug(
+                "Skipping config %s as it does not match request %s project %s",
+                config_inc.build_project(),
+                self.args.request_id,
+                single_request.actions[0].src_project,
+            )
+            return 0
+        return self.process_request_for_config(find_request_on_obs(self.args, config_inc.build_project()), config_inc)
+
     def __call__(self) -> int:
         """Run the increment approval process."""
-        error_count = 0
         # --request-id is an explicit, ad-hoc operator override: the caller is expected to
         # know which OBS instance hosts that request, so per-config obs_url is not applied here.
         single_request = (
             osc.core.Request.from_api(config.settings.obs_url, self.args.request_id) if self.args.request_id else None
         )
-
         grouped_configs: dict[GroupKey, list[IncrementConfig]] = defaultdict(list)
         for config_inc in self.config:
             if single_request and single_request.actions[0].src_project != config_inc.build_project():
@@ -565,6 +573,7 @@ class IncrementApprover:
                 continue
             grouped_configs[config_inc.group_key].append(config_inc)
 
+        error_count = 0
         for configs in grouped_configs.values():
             rep_config = configs[0]
             build_infos = load_build_info(
