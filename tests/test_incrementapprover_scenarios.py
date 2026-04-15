@@ -601,6 +601,44 @@ def test_approval_if_running_jobs_are_in_development_group(
     mock_osc_approve.assert_called()
 
 
+@responses.activate
+@pytest.mark.usefixtures("fake_product_repo", "mock_osc")
+def test_no_retrigger_if_jobs_exist_in_development_group(
+    mocker: MockerFixture, caplog: pytest.LogCaptureFixture, fake_openqa_url_job_stat: str
+) -> None:
+    # 1. Setup: a failed job exists in job_stats
+    responses.add(
+        responses.GET,
+        fake_openqa_url_job_stat,
+        json={"done": {"failed": {"job_ids": [123]}}},
+    )
+
+    # 2. Mock OpenQAInterface.get_single_job to return job details
+    # and OpenQAInterface.is_devel_group to return True for its group_id
+    mock_job = {
+        "id": 123,
+        "group": "Development Group",
+        "group_id": 9,
+        "result": "failed",
+    }
+
+    # 3. Run IncrementApprover with schedule=True
+    increment_approver = prepare_approver(caplog, schedule=True)
+    increment_approver.client.get_single_job = mocker.Mock(return_value=mock_job)
+    increment_approver.client.is_devel_group = mocker.Mock(return_value=True)
+
+    mock_post_job = mocker.patch.object(increment_approver.client, "post_job")
+
+    increment_approver()
+
+    # 4. Verification:
+    # Job 123 was found, so it shouldn't re-trigger even though it was filtered
+    # out for evaluation.
+    mock_post_job.assert_not_called()
+    assert "No jobs for evaluation (filtered) for" in caplog.text
+    assert "Scheduling jobs for" not in caplog.text
+
+
 def test_handle_approval_with_comment_flag(
     mocker: MockerFixture, caplog: pytest.LogCaptureFixture, fake_osc_request: osc.core.Request
 ) -> None:
