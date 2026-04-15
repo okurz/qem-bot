@@ -112,20 +112,6 @@ def test_extra_builds_for_package_parametrized(
         assert res["BUILD"] == expected_build
 
 
-def test_filter_results(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -> None:
-    approver = prepare_approver(caplog)
-    mocker.patch.object(approver.client, "is_in_devel_group", side_effect=lambda j: j.get("group_id") == 9)
-
-    results = [
-        {
-            "passed": {"j1": {"job_ids": [1], "group_id": 1}, "j2": {"job_ids": [1, 2], "group_id": 9}},
-            "failed": {"j3": {"job_ids": [2], "group_id": 9}},
-        }
-    ]
-    expected = [{"passed": {"j1": {"job_ids": [1], "group_id": 1}}}]
-    assert approver._filter_results(results) == expected  # ruff: ignore[private-member-access]
-
-
 @responses.activate
 def test_request_openqa_job_results_enrichment_missing_data(
     caplog: pytest.LogCaptureFixture, mocker: MockerFixture
@@ -160,15 +146,27 @@ def test_request_openqa_job_results_enrichment_missing_data(
     assert "done" in res[0]
 
 
-def test_filter_results_no_devel_filter(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -> None:
+_FILTER_RESULTS_INPUT = [
+    {"passed": {"j1": {"job_ids": [1]}, "j2": {"job_ids": [1, 2]}}, "failed": {"j3": {"job_ids": [2]}}}
+]
+
+
+@pytest.mark.parametrize(
+    ("devel_filter", "expected"),
+    [
+        (True, [{"passed": {"j1": {"job_ids": [1]}, "j2": {"job_ids": [1]}}}]),
+        (False, _FILTER_RESULTS_INPUT),
+    ],
+)
+def test_filter_results(
+    caplog: pytest.LogCaptureFixture,
+    mocker: MockerFixture,
+    devel_filter: bool,  # noqa: FBT001
+    expected: list[dict],
+) -> None:
     approver = prepare_approver(caplog)
-    mocker.patch.object(approver.client, "is_in_devel_group", side_effect=lambda j: j.get("id") == 2)
-    mocker.patch.object(approver.client, "get_single_job", side_effect=lambda j: {"id": j})
-
-    # Disable devel_filter
-    mocker.patch.object(config.settings, "devel_filter", new=False)
-
-    results = [{"passed": {"j1": {"job_ids": [1]}, "j2": {"job_ids": [1, 2]}}, "failed": {"j3": {"job_ids": [2]}}}]
-    # All jobs should be kept
-    expected = [{"passed": {"j1": {"job_ids": [1]}, "j2": {"job_ids": [1, 2]}}, "failed": {"j3": {"job_ids": [2]}}}]
-    assert approver._filter_results(results) == expected  # noqa: SLF001
+    # mock job_map because _filter_results uses it
+    approver.client.job_map = {1: {"id": 1, "group_id": 1}, 2: {"id": 2, "group_id": 9}}
+    mocker.patch.object(approver.client, "is_in_devel_group", side_effect=lambda j: j.get("group_id") == 9)
+    mocker.patch.object(config.settings, "devel_filter", new=devel_filter)
+    assert approver._filter_results(_FILTER_RESULTS_INPUT) == expected  # noqa: SLF001
