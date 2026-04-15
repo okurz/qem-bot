@@ -526,6 +526,7 @@ def test_approval_if_failing_jobs_are_in_development_group(
     increment_approver = prepare_approver(caplog, schedule=schedule)
     # is_devel_group is called with group_id (int), unlike is_in_devel_group which takes a job dict
     increment_approver.client.get_jobs_by_ids = mocker.Mock(return_value=[_devel_job(123, result="failed")])
+    increment_approver.client.is_in_devel_group = mocker.Mock(return_value=True)
     increment_approver.client.is_devel_group = mocker.Mock(return_value=True)
     mock_post_job = mocker.patch.object(increment_approver.client, "post_job")
     mock_change_review = mocker.patch("osc.core.change_review_state")
