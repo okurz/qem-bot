@@ -1,0 +1,214 @@
+make[1]: Entering directory '/home/okurz/local/openSUSE/qem/qem-bot'
+unshare -r -n python3 -m pytest -n auto -v --cov --cov-report=xml --cov-report=term-missing
+make[2]: Entering directory '/home/okurz/local/openSUSE/qem/qem-bot'
+make[3]: Entering directory '/home/okurz/local/openSUSE/qem/qem-bot'
+Checking code health…
+Checking maintainability (grade B or worse) …
+ruff check
+ty check
+RUF031 [*] Avoid parentheses for tuples in subscripts
+   --> openqabot/commenter.py:208:21
+    |
+206 |         grouped = defaultdict(set)
+207 |         for b in builds:
+208 |             grouped[(b.build, b.distri, b.version)].add(b.flavor)
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+209 |
+210 |         badge_msg = ""
+    |
+help: Remove parentheses
+205 |         # Group by (build, distri, version)
+206 |         grouped = defaultdict(set)
+207 |         for b in builds:
+    -             grouped[(b.build, b.distri, b.version)].add(b.flavor)
+208 +             grouped[b.build, b.distri, b.version].add(b.flavor)
+209 |
+210 |         badge_msg = ""
+211 |         for (build, distri, version), flavors in sorted(grouped.items()):
+
+PLR0914 Too many local variables (16/15)
+   --> openqabot/commenter.py:228:9
+    |
+226 |         return badge_msg.strip()
+227 |
+228 |     def _generate_detail_section(self, job_groups: list[dict[str, Any]], sorted_builds: list[BuildIdentifier]) -> str:
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^
+229 |         """Generate markdown for detailed failure information."""
+230 |         max_entries = config.settings.max_detailed_comment_entries
+    |
+
+F841 Local variable `first_b` is assigned to but never used
+   --> openqabot/commenter.py:247:13
+    |
+246 |         if excluded_count > 0:
+247 |             first_b = sorted_builds[0]
+    |             ^^^^^^^
+248 |             # When linking to overview for many groups, we link to the first build's overview
+249 |             # containing all its flavors.
+    |
+help: Remove assignment to unused variable `first_b`
+
+RUF031 [*] Avoid parentheses for tuples in subscripts
+   --> openqabot/commenter.py:253:25
+    |
+251 |             grouped = defaultdict(set)
+252 |             for b in sorted_builds:
+253 |                 grouped[(b.build, b.distri, b.version)].add(b.flavor)
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+254 |
+255 |             (build, distri, version), flavors = sorted(grouped.items())[0]
+    |
+help: Remove parentheses
+250 |             # Grouping builds by (build, distri, version) again to get all flavors of first build.
+251 |             grouped = defaultdict(set)
+252 |             for b in sorted_builds:
+    -                 grouped[(b.build, b.distri, b.version)].add(b.flavor)
+253 +                 grouped[b.build, b.distri, b.version].add(b.flavor)
+254 |
+255 |             (build, distri, version), flavors = sorted(grouped.items())[0]
+256 |
+
+FURB192 Prefer `min` over `sorted()` to compute the minimum value in a sequence
+   --> openqabot/commenter.py:255:49
+    |
+253 |                 grouped[(b.build, b.distri, b.version)].add(b.flavor)
+254 |
+255 |             (build, distri, version), flavors = sorted(grouped.items())[0]
+    |                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+256 |
+257 |             params = {"build": build}
+    |
+help: Replace with `min`
+
+PLR0913 Too many arguments in function definition (6 > 5)
+   --> openqabot/incrementapprover.py:152:9
+    |
+150 |         return self.client.is_in_devel_group(job) if job else False
+151 |
+152 |     def evaluate_openqa_job_results(
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+153 |         self,
+154 |         results: OpenQAResult,
+    |
+help: Consider adding `@typing.override` if changing the function signature would violate the Liskov Substitution Principle
+
+PLR0917 Too many positional arguments (6/5)
+   --> openqabot/incrementapprover.py:152:9
+    |
+150 |         return self.client.is_in_devel_group(job) if job else False
+151 |
+152 |     def evaluate_openqa_job_results(
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+153 |         self,
+154 |         results: OpenQAResult,
+    |
+help: Consider adding `@typing.override` if changing the function signature would violate the Liskov Substitution Principle
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> openqabot/incrementapprover.py:190:27
+    |
+188 |         jobs: list[dict[str, Any]] = []
+189 |         openqa_url = self.client.url.geturl()
+190 |         for results, p in zip(list_of_results, params):
+    |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+191 |             self.evaluate_openqa_job_results(results, p, ok_jobs, not_ok_jobs, jobs, request)
+192 |         reasons_to_disapprove = [
+    |
+help: Add explicit value for parameter `strict=`
+
+F401 [*] `openqabot.config` imported but unused
+  --> tests/test_loader_qem.py:14:28
+   |
+12 | import requests
+13 |
+14 | import openqabot.config as config_module
+   |                            ^^^^^^^^^^^^^
+15 | from openqabot import dashboard
+16 | from openqabot.config import DEFAULT_SUBMISSION_TYPE, settings
+   |
+help: Remove unused import: `openqabot.config`
+11 | import pytest
+12 | import requests
+13 |
+   - import openqabot.config as config_module
+14 | from openqabot import dashboard
+15 | from openqabot.config import DEFAULT_SUBMISSION_TYPE, settings
+16 | from openqabot.loader.qem import (
+
+Found 9 errors.
+[*] 3 fixable with the `--fix` option (3 hidden fixes can be enabled with the `--unsafe-fixes` option).
+make[3]: *** [Makefile:33: check-ruff] Error 1
+make[3]: *** Waiting for unfinished jobs....
+error[unresolved-import]: Module `openqabot.loader.incrementconfig` has no member `from_args`
+  --> openqabot/incrementapprover.py:27:54
+   |
+25 | from .errors import AmbiguousApprovalStatusError, PostOpenQAError
+26 | from .loader.buildinfo import load_build_info
+27 | from .loader.incrementconfig import IncrementConfig, from_args
+   |                                                      ^^^^^^^^^
+28 | from .loader.sourcereport import compute_packages_of_request_from_source_report
+29 | from .repodiff import Package, RepoDiff
+   |
+
+error[missing-argument]: No argument provided for required parameter `flavor`
+   --> tests/test_commenter.py:338:15
+    |
+336 |     mocker.patch("openqabot.config.settings.allow_development_groups", new=None)
+337 |     c = Commenter(mock_args, submissions=[])
+338 |     builds = [BuildIdentifier("1.1", "sle", "15"), BuildIdentifier("1.2", "", "")]
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+339 |     result = c.summarize_message(set(builds), [])
+340 |     suffix = "&not_group_glob=*Devel*%2C*Test*"
+    |
+
+error[missing-argument]: No argument provided for required parameter `flavor`
+   --> tests/test_commenter.py:338:52
+    |
+336 |     mocker.patch("openqabot.config.settings.allow_development_groups", new=None)
+337 |     c = Commenter(mock_args, submissions=[])
+338 |     builds = [BuildIdentifier("1.1", "sle", "15"), BuildIdentifier("1.2", "", "")]
+    |                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+339 |     result = c.summarize_message(set(builds), [])
+340 |     suffix = "&not_group_glob=*Devel*%2C*Test*"
+    |
+
+error[missing-argument]: No argument provided for required parameter `flavor`
+   --> tests/test_commenter.py:360:15
+    |
+358 |     mocker.patch("openqabot.config.settings.allow_development_groups", new="1")
+359 |     c = Commenter(mock_args, submissions=[])
+360 |     builds = [BuildIdentifier("1.1", "opensuse", "Tumbleweed")]
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+361 |     result = c.summarize_message({builds[0]}, [])
+362 |     assert "not_group_glob" not in result
+    |
+
+error[unresolved-import]: Module `openqabot.loader.incrementconfig` has no member `from_config_file`
+  --> tests/test_incrementapprover_scenarios.py:22:63
+   |
+20 | from openqabot.errors import AmbiguousApprovalStatusError
+21 | from openqabot.incrementapprover import IncrementApprover
+22 | from openqabot.loader.incrementconfig import IncrementConfig, from_config_file
+   |                                                               ^^^^^^^^^^^^^^^^
+23 | from openqabot.types.increment import ApprovalStatus, BuildIdentifier, BuildInfo
+   |
+
+Found 5 diagnostics
+make[3]: *** [Makefile:61: check-types-ty] Error 1
+make[3]: Leaving directory '/home/okurz/local/openSUSE/qem/qem-bot'
+make[2]: *** [Makefile:70: checkstyle] Error 2
+make[2]: *** Waiting for unfinished jobs....
+ImportError while loading conftest '/home/okurz/local/openSUSE/qem/qem-bot/tests/conftest.py'.
+tests/conftest.py:28: in <module>
+    from .helpers import (
+tests/helpers.py:21: in <module>
+    from openqabot.incrementapprover import IncrementApprover
+openqabot/incrementapprover.py:27: in <module>
+    from .loader.incrementconfig import IncrementConfig, from_args
+E   ImportError: cannot import name 'from_args' from 'openqabot.loader.incrementconfig' (/home/okurz/local/openSUSE/qem/qem-bot/openqabot/loader/incrementconfig.py)
+make[1]: *** [Makefile:22: test-unit] Error 4
+make[1]: *** Waiting for unfinished jobs....
+make[2]: Leaving directory '/home/okurz/local/openSUSE/qem/qem-bot'
+make[1]: *** [Makefile:74: checkstyle-all] Error 2
+make[1]: Leaving directory '/home/okurz/local/openSUSE/qem/qem-bot'
+make: *** [Makefile:78: test] Error 2

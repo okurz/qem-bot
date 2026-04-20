@@ -205,7 +205,7 @@ class Commenter:
         # Group by (build, distri, version)
         grouped = defaultdict(set)
         for b in builds:
-            grouped[(b.build, b.distri, b.version)].add(b.flavor)
+            grouped[b.build, b.distri, b.version].add(b.flavor)
 
         badge_msg = ""
         for (build, distri, version), flavors in sorted(grouped.items()):
@@ -245,9 +245,9 @@ class Commenter:
             # Grouping builds by (build, distri, version) again to get all flavors of first build.
             grouped = defaultdict(set)
             for b in sorted_builds:
-                grouped[(b.build, b.distri, b.version)].add(b.flavor)
+                grouped[b.build, b.distri, b.version].add(b.flavor)
 
-            (build, distri, version), flavors = sorted(grouped.items())[0]
+            (build, distri, version), flavors = min(grouped.items())
 
             params = BuildIdentifier(build, distri, version, "").get_base_badge_params()
             if flavors:

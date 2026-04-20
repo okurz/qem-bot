@@ -335,7 +335,7 @@ def test_summarize_message(
     commenter_setup["client"].return_value.openqa.baseurl = "https://openqa.opensuse.org"
     mocker.patch("openqabot.config.settings.allow_development_groups", new=None)
     c = Commenter(mock_args, submissions=[])
-    builds = [BuildIdentifier("1.1", "sle", "15"), BuildIdentifier("1.2", "", "")]
+    builds = [BuildIdentifier("1.1", "sle", "15", "flavor1"), BuildIdentifier("1.2", "", "", "flavor2")]
     result = c.summarize_message(set(builds), [])
     assert (
         "https://openqa.opensuse.org/tests/overview/badge?build=1.1&distri=sle&version=15&not_group_glob=*Devel*%2C*Test*&label=Build+1.1"
@@ -356,7 +356,7 @@ def test_summarize_message_allow_devel(
     commenter_setup["client"].return_value.openqa.baseurl = "https://openqa.opensuse.org"
     mocker.patch("openqabot.config.settings.allow_development_groups", new="1")
     c = Commenter(mock_args, submissions=[])
-    builds = [BuildIdentifier("1.1", "opensuse", "Tumbleweed")]
+    builds = [BuildIdentifier("1.1", "opensuse", "Tumbleweed", "flavor1")]
     result = c.summarize_message({builds[0]}, [])
     assert "not_group_glob" not in result
     assert (

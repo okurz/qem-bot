@@ -11,7 +11,6 @@ from unittest.mock import MagicMock
 import pytest
 import requests
 
-import openqabot.config as config_module
 from openqabot import dashboard
 from openqabot.config import DEFAULT_SUBMISSION_TYPE, settings
 from openqabot.loader.qem import (
@@ -123,7 +122,9 @@ def test_get_active_submissions(mock_get_json: MagicMock) -> None:
 
     assert len(res) == 2
     assert res == [1, 2]
-    mock_get_json.assert_called_once_with()
+    mock_get_json.assert_called_once_with(
+        "api/incidents", headers=settings.dashboard_token_dict, params={"type": "git"}
+    )
 
 
 _FULL_INCIDENT: dict = {
@@ -168,7 +169,9 @@ def test_get_single_submission(mock_get_json: MagicMock) -> None:
     assert res[0].req == 123
     assert res[0].type == DEFAULT_SUBMISSION_TYPE
     assert res[0].submission is not None
-    mock_get_json.assert_called_once_with()
+    mock_get_json.assert_called_once_with(
+        "api/incidents/1", headers=settings.dashboard_token_dict, params={"type": "smelt"}
+    )
 
 
 def test_get_submission_settings_no_settings(mock_get_json: MagicMock) -> None:
@@ -240,7 +243,9 @@ def test_get_submission_settings_data(mock_get_json: MagicMock) -> None:
     assert res[0].distri == "distri"
     assert res[0].version == "version"
     assert res[0].build == "build"
-    mock_get_json.assert_called_once_with()
+    mock_get_json.assert_called_once_with(
+        "api/incident_settings/1", headers=settings.dashboard_token_dict, params={"type": "smelt"}
+    )
 
 
 def test_get_submission_settings_data_error(mock_get_json: MagicMock) -> None:
@@ -452,7 +457,9 @@ def test_get_active_submissions_with_type(mock_get_json: MagicMock) -> None:
     mock_get_json.return_value = [{"number": 123}]
     res = get_active_submissions(submission_type=DEFAULT_SUBMISSION_TYPE)
     assert res == [123]
-    mock_get_json.assert_called_once_with()
+    mock_get_json.assert_called_once_with(
+        "api/incidents", headers=settings.dashboard_token_dict, params={"type": "smelt"}
+    )
 
 
 def test_get_active_submissions_no_type(mock_get_json: MagicMock) -> None:
@@ -467,7 +474,9 @@ def test_get_single_submission_with_type(mock_get_json: MagicMock) -> None:
     assert len(res) == 1
     assert res[0].sub == 123
     assert res[0].submission is not None
-    mock_get_json.assert_called_once_with()
+    mock_get_json.assert_called_once_with(
+        "api/incidents/123", headers=settings.dashboard_token_dict, params={"type": "smelt"}
+    )
 
 
 def test_get_single_submission_no_type(mock_get_json: MagicMock) -> None:

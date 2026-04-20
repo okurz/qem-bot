@@ -161,6 +161,7 @@ class IncrementApprover:
         results: OpenQAResult,
         params: dict[str, str],
         ok_jobs: set[int],
+        *,
         not_ok_jobs: dict[str, set[str]],
         jobs: list[dict[str, Any]],
         request: osc.core.Request,
@@ -194,8 +195,8 @@ class IncrementApprover:
         not_ok_jobs = defaultdict(set)  # keep track of not ok jobs
         jobs: list[dict[str, Any]] = []
         openqa_url = self.client.url.geturl()
-        for results, p in zip(list_of_results, params):
-            self.evaluate_openqa_job_results(results, p, ok_jobs, not_ok_jobs, jobs, request)
+        for results, p in zip(list_of_results, params, strict=True):
+            self.evaluate_openqa_job_results(results, p, ok_jobs, not_ok_jobs=not_ok_jobs, jobs=jobs, request=request)
         reasons_to_disapprove = [
             f"The following openQA jobs ended up with result '{result}':\n"
             + "\n".join(f" - {openqa_url}/tests/{i}" for i in job_ids)
