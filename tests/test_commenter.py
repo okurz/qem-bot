@@ -874,3 +874,18 @@ def test_summarize_message_detailed_comments_duplicate_group(
     assert "Functional" in result_obs
     assert result_obs.count("[Functional Test Results]") == 1
     assert "label=Functional" not in result_obs
+
+
+@pytest.mark.usefixtures("commenter_setup")
+def test_comment_on_submission_provided_jobs(
+    mock_args: Namespace,
+    mock_smelt_sub: MagicMock,
+    mocker: MockerFixture,
+) -> None:
+    """Test comment_on_submission with pre-provided job lists."""
+    mock_osc_comment = mocker.patch.object(Commenter, "osc_comment")
+    c = Commenter(mock_args, submissions=[])
+    s_jobs = [{"status": "passed", "build": "1"}]
+    a_jobs = [{"status": "passed", "build": "2"}]
+    c.comment_on_submission(mock_smelt_sub, s_jobs=s_jobs, a_jobs=a_jobs)
+    mock_osc_comment.assert_called_once()
