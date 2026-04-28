@@ -130,18 +130,19 @@ class IncrementApprover:
 
         # Fetch all relevant job details in a single API call to avoid N+1 query problem
         job_ids = [
-            int(ids[0])
+            int(jid)
             for stat in stats
             for jobs in stat.values()
             for info in jobs.values()
-            if (ids := info.get("job_ids"))
+            for jid in info.get("job_ids", [])
         ]
-        job_map = {job["id"]: job for job in self.client.get_jobs_by_ids(job_ids)}
+        self.client.job_map = {job["id"]: job for job in self.client.get_jobs_by_ids(job_ids)}
 
-        res = [self.client.enrich_stats(stat, job_map) for stat in stats]
+        res = [self.client.enrich_stats(stat, self.client.job_map) for stat in stats]
 
         log.debug("Job statistics:\n%s", pformat(res))
         return res
+
 
     @staticmethod
     def check_openqa_jobs(results: OpenQAResults, build_info: BuildInfo, params: ScheduleParams) -> bool | None:
