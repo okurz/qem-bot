@@ -258,20 +258,20 @@ class IncrementApprover:
         if (archs := additional_build.get("archs")) and package.arch not in archs:
             return None
 
-        if not (package_name_match := self._match_package_name_and_version(package, additional_build)):
+        if not (match := self._match_package_name_and_version(package, additional_build)):
             return None
 
-        groups = package_name_match.groupdict()
+        groups = match.groupdict()
         kernel_version = (groups.get("kernel_version") or "").replace("_", ".")
 
-        buildname_parts = [
+        build_parts = [
             f"PI-{build_info.build}",
             additional_build["build_suffix"],
             groups.get("kind"),
             kernel_version,
         ]
 
-        params = {"BUILD": "-".join(str(part) for part in buildname_parts if part)}
+        params = {"BUILD": "-".join(filter(None, build_parts))}
         if kernel_version:
             params["KERNEL_VERSION"] = kernel_version
 
