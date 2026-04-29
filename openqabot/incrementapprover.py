@@ -557,7 +557,6 @@ class IncrementApprover:
         single_request = (
             osc.core.Request.from_api(config.settings.obs_url, self.args.request_id) if self.args.request_id else None
         )
-
         grouped_configs: dict[GroupKey, list[IncrementConfig]] = defaultdict(list)
         for config_inc in self.config:
             if single_request and single_request.actions[0].src_project != config_inc.build_project():
@@ -580,7 +579,6 @@ class IncrementApprover:
             request = find_request_on_obs(self.args, rep_config.build_project())
             for config_inc in configs:
                 error_count += self.process_request_for_config(request, config_inc, build_infos)
-
         for request in self.requests_to_approve.values():
             error_count += self.handle_approval(request)
         return error_count
