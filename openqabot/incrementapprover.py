@@ -243,7 +243,10 @@ class IncrementApprover:
             return None
 
         groups = package_name_match.groupdict()
-        kernel_version = (groups.get("kernel_version") or "").replace("_", ".")
+        kernel_version = groups.get("kernel_version") or ""
+        if kernel_version and not kernel_version[0].isdigit():
+            return None
+        kernel_version = kernel_version.replace("_", ".")
 
         buildname_parts = [
             f"PI-{build_info.build}",
