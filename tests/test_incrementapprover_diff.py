@@ -94,6 +94,7 @@ def test_package_diff_reference_repos(caplog: pytest.LogCaptureFixture, mocker: 
         f"{settings.obs_download_url}/BASE:/BUILD/repo/SLES-16.0-x86_64",
     )
 
+
 def test_package_diff_skip_debug(caplog: pytest.LogCaptureFixture) -> None:
     approver = prepare_approver(caplog)
     config = IncrementConfig(

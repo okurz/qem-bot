@@ -39,6 +39,8 @@ def diff(mocker: MockerFixture) -> RepoDiff:
 )
 def test_make_repodata_url_http(diff: RepoDiff, url: str, expected: str) -> None:
     assert diff.make_repodata_url(url) == expected
+
+
 def test_repodiff_no_args(caplog: pytest.LogCaptureFixture) -> None:
     diff = RepoDiff(None)
     assert diff() == 1
