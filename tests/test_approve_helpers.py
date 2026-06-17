@@ -129,7 +129,7 @@ def test_approvable_clears_reason(mocker: MockerFixture) -> None:
     mock_update = mocker.patch("openqabot.approver.update_incident_reason")
     mocker.patch("openqabot.approver.get_submission_settings", return_value=[])
     mocker.patch("openqabot.approver.get_aggregate_settings", return_value=[])
-    mocker.patch.object(approver, "get_submission_result", return_value=JobResult.PASSED)
+    mocker.patch.object(approver, "get_submission_result", return_value=(JobResult.PASSED, []))
 
     sub = SubReq(1, 2)
     assert approver.approvable(sub) is True
@@ -295,3 +295,11 @@ def test_clone_dedup_keeps_highest_job_id(mocker: MockerFixture) -> None:
     mock_aggregates = [JobAggr(id=1, aggregate=False, with_aggregate=True)]
     result, _ = approver.get_jobs(mock_aggregates[0], "api/jobs/update/", 1)
     assert result is JobResult.PASSED
+
+
+def test_get_submission_result_empty_jobs() -> None:
+    """Test get_submission_result with empty jobs list."""
+    approver = Approver(make_approver_args())
+    res, results = approver.get_submission_result([], "api/jobs/incident/", 123)
+    assert res is JobResult.NO_JOBS
+    assert results == []

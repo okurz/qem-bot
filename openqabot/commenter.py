@@ -23,7 +23,7 @@ from .utils import extract_contact_from_description, normalize_results
 
 if TYPE_CHECKING:
     from argparse import Namespace
-    from collections.abc import Callable, Sequence
+    from collections.abc import Sequence
 
     from .types.pullrequest import CommentableProtocol
     from .types.submission import Submission
