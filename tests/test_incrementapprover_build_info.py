@@ -153,9 +153,7 @@ def testload_build_info_filter_source_debug(caplog: pytest.LogCaptureFixture, mo
             {"name": "SLES-16.0-Online-x86_64-Build36.1-Debug.spdx.json"},
         ]
     }
-    res = load_build_info(
-        config, config.build_regex, config.product_regex, config.version_regex, approver.get_regex_match
-    )
+    res = load_build_info(config, config.build_regex, approver.get_regex_match)
     assert len(res) == 1
     assert next(iter(res)).build == "36.1"
 
