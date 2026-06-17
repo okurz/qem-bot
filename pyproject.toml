@@ -57,7 +57,6 @@ QEM_DASHBOARD_URL = { unset = true }
 [tool.coverage.run]
 source = ["openqabot"]
 branch = true
-source = ["openqabot"]
 
 [tool.coverage.report]
 fail_under = 100

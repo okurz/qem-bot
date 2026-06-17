@@ -103,12 +103,12 @@ def test_get_submissions_error(mock_get_json: MagicMock) -> None:
 
     mock_get_json.return_value = {"error": "some other error"}
     with pytest.raises(LoaderQemError):
-        get_submissions({}, "git:123")
+        get_submissions("git:123")
 
 
 def test_get_single_submission_error(mock_get_json: MagicMock, caplog: pytest.LogCaptureFixture) -> None:
     mock_get_json.return_value = {"error": "Incident not found"}
-    res = get_single_submission({}, 123, submission_type="git")
+    res = get_single_submission(123, submission_type="git")
     assert res == []
     assert "Dashboard API error: Unable to fetch submission git:123: Incident not found" in caplog.text
 
