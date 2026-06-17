@@ -73,13 +73,13 @@ def fake_responses_for_unblocking_submissions_via_openqa_comments(
         )
 
 
-@pytest.fixture(autouse=True)  # noqa: RUF076 - pytest autouse required to ensure all tests run with fake openQA URL
+@pytest.fixture(autouse=True)  # noqa: RUF076, RUF100 - pytest autouse required
 def fake_openqa_url() -> str:
     settings.openqa_instance = "http://instance.qa"
     return settings.openqa_instance
 
 
-@pytest.fixture(autouse=True)  # noqa: RUF076 - pytest autouse required to ensure all tests run with fake openQA job stat URL
+@pytest.fixture(autouse=True)  # noqa: RUF076, RUF100 - pytest autouse required
 def fake_openqa_url_job_stat(fake_openqa_url: str) -> str:
     settings.openqa_instance = "http://instance.qa"
     return f"{fake_openqa_url}/api/v1/isos/job_stats"
@@ -127,7 +127,7 @@ def make_approver(submission: int = 0, *, mocker: MockerFixture | None = None, c
     return instance()
 
 
-@pytest.fixture(autouse=True)  # noqa: RUF076 - pytest autouse required to clear cache automatically before every test
+@pytest.fixture(autouse=True)  # noqa: RUF076, RUF100 - pytest autouse required
 def _auto_clear_cache() -> None:
     clear_cache()
 
@@ -140,7 +140,7 @@ def _session_settings() -> dict[str, Any]:
         return {key: getattr(defaults, key) for key in Settings.model_fields}
 
 
-@pytest.fixture(autouse=True)  # noqa: RUF076 - pytest autouse required to reset singleton settings for every test
+@pytest.fixture(autouse=True)  # noqa: RUF076, RUF100 - pytest autouse required
 def _reset_settings(mocker: MockerFixture, _session_settings: dict[str, Any]) -> None:
     # Maintain consistent environment and reset singleton settings for every test
     mocker.patch.dict(os.environ, {"OBS_URL": _session_settings["obs_url"]})
@@ -148,7 +148,7 @@ def _reset_settings(mocker: MockerFixture, _session_settings: dict[str, Any]) ->
         setattr(config_module.settings, key, value)
 
 
-@pytest.fixture(autouse=True)  # noqa: RUF076 - pytest autouse required to mock load_dotenv automatically for all tests
+@pytest.fixture(autouse=True)  # noqa: RUF076, RUF100 - pytest autouse required
 def _mock_load_dotenv(mocker: MockerFixture) -> None:
     mocker.patch("openqabot.main.load_dotenv")
 
@@ -265,7 +265,7 @@ def fakeget_package_diff(mocker: MockerFixture) -> None:
     mocker.patch("openqabot.incrementapprover.IncrementApprover.get_package_diff_from_repo", return_value=package_diff)
 
 
-@pytest.fixture(autouse=True)  # noqa: RUF076 - pytest autouse required to mock osc automatically for all tests
+@pytest.fixture(autouse=True)  # noqa: RUF076, RUF100 - pytest autouse required
 def mock_osc(mocker: MockerFixture) -> None:
     # Clear caches to ensure isolation between tests
 
