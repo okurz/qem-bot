@@ -114,12 +114,25 @@ class IncrementApprover:
             )
         return match
 
+    def is_in_devel_group(self, job_id: int) -> bool:
+        """Fetch job details and check if it belongs to a development group."""
+        job = self.client.get_single_job(job_id)
+        return self.client.is_in_devel_group(job) if job else False
+
     def _filter_jobs(self, jobs: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
         """Filter jobs within a state, removing those in devel groups."""
         if not config.settings.devel_filter:
             return jobs
 
-        return {name: info for name, info in jobs.items() if not self.client.is_in_devel_group(info)}
+        res = {}
+        for name, info in jobs.items():
+            if ids := [
+                jid
+                for jid in info.get("job_ids", [])
+                if not self.client.is_in_devel_group(getattr(self.client, "job_map", {}).get(int(jid), {}))
+            ]:
+                res[name] = info | {"job_ids": ids}
+        return res
 
     def _filter_results(self, results: OpenQAResults) -> OpenQAResults:
         """Remove jobs belonging to development groups from openQA results."""
@@ -143,18 +156,19 @@ class IncrementApprover:
             stats = list(executor.map(fetch_stats, params))
 
         job_ids = [
-            int(i)
+            int(jid)
             for stat in stats
             for jobs in stat.values()
             for info in jobs.values()
-            for i in info.get("job_ids", [])
+            for jid in info.get("job_ids", [])
         ]
-        job_map = {job["id"]: job for job in self.client.get_jobs_by_ids(job_ids)}
+        self.client.job_map = {job["id"]: job for job in self.client.get_jobs_by_ids(job_ids)}
 
-        res = [self.client.enrich_stats(stat, job_map) for stat in stats]
+        res = [self.client.enrich_stats(stat, self.client.job_map) for stat in stats]
 
         log.debug("Job statistics:\n%s", pformat(res))
         return res
+
 
     @staticmethod
     def check_openqa_jobs(results: OpenQAResults, build_info: BuildInfo, params: ScheduleParams) -> JobState:
