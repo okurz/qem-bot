@@ -104,6 +104,7 @@ class Settings(BaseSettings):
     obs_repo_type: str | None = Field(default="product", alias="OBS_REPO_TYPE")
     obs_products: str = Field(default="all", alias="OBS_PRODUCTS")
     allow_development_groups: str | None = Field(default=None, alias="QEM_BOT_ALLOW_DEVELOPMENT_GROUPS")
+    devel_filter: bool = Field(default=True, alias="QEM_BOT_DEVEL_FILTER")
     development_parent_group_id: int = 9
     download_base_url: str = Field(default="http://%REPO_MIRROR_HOST%/ibs", alias="DOWNLOAD_BASE_URL")
     download_maintenance_base_url: str | None = Field(default=None, alias="DOWNLOAD_MAINTENANCE_BASE_URL")

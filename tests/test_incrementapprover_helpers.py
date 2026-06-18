@@ -7,6 +7,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import pytest
+from openqabot import config
 import responses
 
 from openqabot.errors import PostOpenQAError
@@ -158,3 +159,17 @@ def test_request_openqa_job_results_enrichment_missing_data(
 
     assert len(res) == 1
     assert "done" in res[0]
+
+
+def test_filter_results_no_devel_filter(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -> None:
+    approver = prepare_approver(caplog)
+    mocker.patch.object(approver.client, "is_in_devel_group", side_effect=lambda j: j.get("id") == 2)
+    mocker.patch.object(approver.client, "get_single_job", side_effect=lambda j: {"id": j})
+
+    # Disable devel_filter
+    mocker.patch.object(config.settings, "devel_filter", new=False)
+
+    results = [{"passed": {"j1": {"job_ids": [1]}, "j2": {"job_ids": [1, 2]}}, "failed": {"j3": {"job_ids": [2]}}}]
+    # All jobs should be kept
+    expected = [{"passed": {"j1": {"job_ids": [1]}, "j2": {"job_ids": [1, 2]}}, "failed": {"j3": {"job_ids": [2]}}}]
+    assert approver._filter_results(results) == expected  # noqa: SLF001
