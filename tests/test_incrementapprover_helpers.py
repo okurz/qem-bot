@@ -88,6 +88,17 @@ def test_schedule_jobs_fail(caplog: pytest.LogCaptureFixture, mocker: MockerFixt
             [{"regex": ".*", "build_suffix": "test", "settings": {"BAR": "BAZ"}}],
             "PI-1.1-test",
         ),
+        # Non-digit kernel version safeguard exclusion
+        (
+            Package("kernel-livepatch-abc", "0", "20240101", "1.1", "x86_64"),
+            [
+                {
+                    "regex": r"kernel-livepatch-(?P<kernel_version>[^-]+(?:-[^-]+)?)(?:-(?P<kind>rt))?$",
+                    "build_suffix": "test",
+                }
+            ],
+            None,
+        ),
     ],
 )
 def test_extra_builds_for_package_parametrized(
