@@ -116,6 +116,9 @@ class IncrementApprover:
 
     def _filter_jobs(self, jobs: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
         """Filter jobs within a state, removing those in devel groups."""
+        if not config.settings.devel_filter:
+            return jobs
+
         return {name: info for name, info in jobs.items() if not self.client.is_in_devel_group(info)}
 
     def _filter_results(self, results: OpenQAResults) -> OpenQAResults:
