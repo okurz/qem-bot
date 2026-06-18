@@ -201,7 +201,6 @@ class Approver:
                 return self._reject(sub, "%s has no jobs in aggregate tests (openQA job template mismatch?)")
 
         return True
-
     def approvable(self, sub: SubReq) -> bool:
         """Check if a submission is ready for approval."""
         try:
