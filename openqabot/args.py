@@ -100,12 +100,12 @@ max_detailed_comment_entries_option = Annotated[
     ),
 ]
 
-devel_filter_option = Annotated[
+allow_development_groups_option = Annotated[
     bool,
     typer.Option(
-        "--devel-filter/--no-devel-filter",
-        envvar="QEM_BOT_DEVEL_FILTER",
-        help="Filter out jobs in development groups",
+        "--allow-development-groups/--no-allow-development-groups",
+        envvar="QEM_BOT_ALLOW_DEVELOPMENT_GROUPS",
+        help="Allow jobs in development groups to be considered for approval",
     ),
 ]
 
@@ -676,7 +676,7 @@ def increment_approve(  # ruff: ignore[too-many-arguments]
     fallback_contact: fallback_contact_option = None,
     generic_tool_issues_contact: generic_tool_issues_contact_option = None,
     max_detailed_comment_entries: max_detailed_comment_entries_option = None,
-    devel_filter: devel_filter_option = True,
+    allow_development_groups: allow_development_groups_option = False,
 ) -> None:
     """Approve the most recent product increment for an OBS project if tests passed."""
     args = ctx.obj
@@ -697,7 +697,7 @@ def increment_approve(  # ruff: ignore[too-many-arguments]
     args.product_regex = product_regex
     args.increment_config = increment_config
     args.comment = comment
-    config_module.settings.devel_filter = devel_filter
+    config_module.settings.allow_development_groups = allow_development_groups
 
     _apply_detailed_comment_options(
         args,

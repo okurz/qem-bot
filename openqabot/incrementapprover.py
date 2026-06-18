@@ -121,7 +121,7 @@ class IncrementApprover:
 
     def _filter_jobs(self, jobs: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
         """Filter jobs within a state, removing those in devel groups."""
-        if not config.settings.devel_filter:
+        if config.settings.allow_development_groups:
             return jobs
 
         res = {}

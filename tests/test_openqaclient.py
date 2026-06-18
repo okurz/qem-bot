@@ -140,8 +140,8 @@ def test_get_job_comments_request_exception(caplog: pytest.LogCaptureFixture) ->
 def test_is_in_devel_group_allow_development_groups() -> None:
     """Test is_in_devel_group when allow_development_groups is True."""
     client = oQAI()
-    # Settings expects a string or None
-    with patch("openqabot.config.settings.allow_development_groups", "1"):
+    # Settings expects a bool
+    with patch("openqabot.config.settings.allow_development_groups", True):  # noqa: FBT003
         # Should return False regardless of group name if allowed
         assert not client.is_in_devel_group({"group": "Devel Group"})
         assert not client.is_in_devel_group({"group": "Production"})
@@ -150,7 +150,7 @@ def test_is_in_devel_group_allow_development_groups() -> None:
 def test_is_in_devel_group_no_group_id() -> None:
     """Test is_in_devel_group when no group_id is present and not matching name."""
     client = oQAI()
-    with patch("openqabot.config.settings.allow_development_groups", None):
+    with patch("openqabot.config.settings.allow_development_groups", False):  # noqa: FBT003
         # No group_id and no "Devel"/"Test" in name -> should return False
         assert not client.is_in_devel_group({"group": "Production"})
         # No group_id but "Devel" in name -> should return True

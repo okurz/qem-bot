@@ -152,21 +152,21 @@ _FILTER_RESULTS_INPUT = [
 
 
 @pytest.mark.parametrize(
-    ("devel_filter", "expected"),
+    ("allow_development_groups", "expected"),
     [
-        (True, [{"passed": {"j1": {"job_ids": [1]}, "j2": {"job_ids": [1]}}}]),
-        (False, _FILTER_RESULTS_INPUT),
+        (False, [{"passed": {"j1": {"job_ids": [1]}, "j2": {"job_ids": [1]}}}]),
+        (True, _FILTER_RESULTS_INPUT),
     ],
 )
 def test_filter_results(
     caplog: pytest.LogCaptureFixture,
     mocker: MockerFixture,
-    devel_filter: bool,  # noqa: FBT001
+    allow_development_groups: bool,  # noqa: FBT001
     expected: list[dict],
 ) -> None:
     approver = prepare_approver(caplog)
     # mock job_map because _filter_results uses it
     approver.client.job_map = {1: {"id": 1, "group_id": 1}, 2: {"id": 2, "group_id": 9}}
     mocker.patch.object(approver.client, "is_in_devel_group", side_effect=lambda j: j.get("group_id") == 9)
-    mocker.patch.object(config.settings, "devel_filter", new=devel_filter)
+    mocker.patch.object(config.settings, "allow_development_groups", new=allow_development_groups)
     assert approver._filter_results(_FILTER_RESULTS_INPUT) == expected  # noqa: SLF001

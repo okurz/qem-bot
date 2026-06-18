@@ -352,7 +352,7 @@ def test_summarize_message(
     mocker: MockerFixture,
 ) -> None:
     commenter_setup["client"].return_value.openqa.baseurl = "https://openqa.opensuse.org"
-    mocker.patch("openqabot.config.settings.allow_development_groups", new=None)
+    mocker.patch("openqabot.config.settings.allow_development_groups", new=False)
     c = Commenter(mock_args, submissions=[])
     builds = [BuildIdentifier("1.1", "sle", "15"), BuildIdentifier("1.2", "", "")]
     sub_gitea = MagicMock(is_gitea=True)
@@ -395,7 +395,7 @@ def test_summarize_message_allow_devel(
     mocker: MockerFixture,
 ) -> None:
     commenter_setup["client"].return_value.openqa.baseurl = "https://openqa.opensuse.org"
-    mocker.patch("openqabot.config.settings.allow_development_groups", new="1")
+    mocker.patch("openqabot.config.settings.allow_development_groups", new=True)
     c = Commenter(mock_args, submissions=[])
     builds = [BuildIdentifier("1.1", "opensuse", "Tumbleweed")]
     sub_gitea = MagicMock(is_gitea=True)
@@ -718,7 +718,7 @@ def detailed_comment_mocks(
 ) -> dict[str, MagicMock]:
     """Set up common mocks for detailed comments tests."""
     commenter_setup["client"].return_value.openqa.baseurl = "https://openqa.opensuse.org"
-    mocker.patch("openqabot.config.settings.allow_development_groups", new=None)
+    mocker.patch("openqabot.config.settings.allow_development_groups", new=False)
     mocker.patch("openqabot.config.settings.fallback_contact", new="Contact openQA test maintainer")
     mocker.patch("openqabot.config.settings.generic_tool_issues_contact", new="our cool qem-bot admins")
     mocker.patch("openqabot.config.settings.enable_detailed_comments", new=True)
@@ -731,7 +731,7 @@ def detailed_comment_mocks(
     [
         pytest.param(
             False,
-            None,
+            False,
             [{"build": "1.1", "status": "failed", "group_id": 42}],
             {"id": 42, "name": "Functional", "description": "Responsible: qe@test.com"},
             [],
@@ -740,7 +740,7 @@ def detailed_comment_mocks(
         ),
         pytest.param(
             True,
-            None,
+            False,
             [{"build": "1.1", "status": "passed", "group_id": 42}],
             {"id": 42, "name": "Functional", "description": "Responsible: qe@test.com"},
             [],
@@ -749,7 +749,7 @@ def detailed_comment_mocks(
         ),
         pytest.param(
             True,
-            None,
+            False,
             [
                 {"build": "1.1", "status": "failed", "group_id": 42},
                 {"build": "1.1", "status": "passed", "group_id": 42},
@@ -761,7 +761,7 @@ def detailed_comment_mocks(
         ),
         pytest.param(
             True,
-            "1",
+            True,
             [{"build": "1.1", "status": "failed", "group_id": 42}],
             {"id": 42, "name": "Functional", "description": "Responsible: qe-functional@example.com"},
             ["Functional"],
@@ -770,7 +770,7 @@ def detailed_comment_mocks(
         ),
         pytest.param(
             True,
-            None,
+            False,
             [{"build": "1.1", "status": "failed", "group_id": 42}],
             {"id": 42, "name": "Functional", "description": "Responsible: qe-functional@example.com"},
             ["generic tool issues", "our cool qem-bot admins"],
@@ -779,7 +779,7 @@ def detailed_comment_mocks(
         ),
         pytest.param(
             True,
-            None,
+            False,
             [{"build": "1.1", "status": "failed", "group_id": 42}],
             {"id": 42, "name": "Kernel", "description": "No contact info here"},
             ["Kernel", "No contact provided", "Contact openQA test maintainer"],
@@ -788,7 +788,7 @@ def detailed_comment_mocks(
         ),
         pytest.param(
             True,
-            None,
+            False,
             [{"build": "1.1", "status": "failed", "group_id": 42}],
             None,
             ["Job Group with blocking failures", "Unknown", "No contact provided"],
@@ -797,7 +797,7 @@ def detailed_comment_mocks(
         ),
         pytest.param(
             True,
-            None,
+            False,
             [{"build": "1.1", "status": "failed"}],
             {"id": 42, "name": "Functional", "description": "Responsible: qe@test.com"},
             [],
@@ -806,7 +806,7 @@ def detailed_comment_mocks(
         ),
         pytest.param(
             True,
-            "1",
+            True,
             [{"build": "1.1", "distri": "sle", "version": "15", "status": "failed", "group_id": i} for i in range(10)],
             {"id": 0, "name": "Group", "description": "Responsible: qe@test.com"},
             ["... and 2 more job groups", "distri=sle", "version=15"],
@@ -815,7 +815,7 @@ def detailed_comment_mocks(
         ),
         pytest.param(
             True,
-            None,
+            False,
             [{"build": "1.1", "status": "failed", "group_id": i} for i in range(10)],
             {"id": 0, "name": "Group", "description": "Responsible: qe@test.com"},
             ["... and 2 more job groups", "not_group_glob"],
@@ -830,7 +830,7 @@ def test_summarize_message_detailed_comments(
     detailed_comment_mocks: dict[str, MagicMock],
     mocker: MockerFixture,
     enabled: bool,  # ruff: ignore[boolean-type-hint-positional-argument]
-    allow_devel: str | None,
+    allow_devel: bool,  # ruff: ignore[boolean-type-hint-positional-argument]
     jobs: list[dict],
     group_info: dict | None,
     expected_contains: list[str],
