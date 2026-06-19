@@ -16,6 +16,7 @@ import responses
 from typer.testing import CliRunner
 
 import openqabot.main as main_module
+from openqabot import dashboard
 from openqabot.args import app
 from openqabot.args import main as args_main
 from openqabot.config import settings
@@ -328,6 +329,7 @@ def test_main_exception_limit_reraise(mocker: MockerFixture) -> None:
     assert len(errorcnt) == 1
     key = next(iter(errorcnt))
     assert errorcnt[key] == 11
+<<<<<<< HEAD
 
 
 def _raise_key_error() -> None:
@@ -345,3 +347,20 @@ def test_handle_exception_debug_log_is_self_contained(mocker: MockerFixture) -> 
 
     debug_calls = [str(c) for c in mock_log.debug.call_args_list]
     assert any("KeyError" in c and "'number'" in c for c in debug_calls), debug_calls
+||||||| parent of d3940d64 (feat: centralize dry-run protection in Dashboard API client)
+=======
+
+
+def test_dashboard_dry_run_patch_put(mocker: MockerFixture) -> None:
+    mocker.patch("openqabot.dashboard.settings.dry", new=True)
+
+    resp_patch = dashboard.patch("api/test_route", json={"foo": "bar"})
+    assert resp_patch.status_code == 200
+    assert resp_patch.json() == {"id": "dry_run"}
+    assert resp_patch.text == '{"id": "dry_run"}'
+
+    resp_put = dashboard.put("api/test_route", json={"hello": "world"})
+    assert resp_put.status_code == 200
+    assert resp_put.json() == {"id": "dry_run"}
+    assert resp_put.text == '{"id": "dry_run"}'
+>>>>>>> d3940d64 (feat: centralize dry-run protection in Dashboard API client)
