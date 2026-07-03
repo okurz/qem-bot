@@ -36,6 +36,7 @@ app = typer.Typer(
     help="QEM-Dashboard, SMELT, Gitea and openQA connector",
     no_args_is_help=True,
     add_completion=False,
+    chain=True,
 )
 log = logging.getLogger("bot")
 
@@ -332,7 +333,8 @@ def full_run(
     args.disable_aggregates = False
 
     bot = OpenQABot(args)
-    sys.exit(bot())
+    if (ret := bot()) != 0:
+        sys.exit(ret)
 
 
 @app.command("submissions-run")
@@ -361,7 +363,8 @@ def submissions_run(
     args.disable_aggregates = True
 
     bot = OpenQABot(args)
-    sys.exit(bot())
+    if (ret := bot()) != 0:
+        sys.exit(ret)
 
 
 @app.command("updates-run")
@@ -381,7 +384,8 @@ def updates_run(
     args.disable_submissions = True
 
     bot = OpenQABot(args)
-    sys.exit(bot())
+    if (ret := bot()) != 0:
+        sys.exit(ret)
 
 
 @app.command("smelt-sync")
@@ -391,7 +395,8 @@ def smelt_sync(ctx: typer.Context) -> None:
     _require_token(args)
 
     syncer = SMELTSync(args)
-    sys.exit(syncer())
+    if (ret := syncer()) != 0:
+        sys.exit(ret)
 
 
 @app.command("gitea-sync")
@@ -441,7 +446,8 @@ def gitea_sync(  # ruff: ignore[too-many-arguments]
     args.skip_initial_sync = skip_initial_sync
 
     syncer = GiteaSync(args)
-    sys.exit(syncer())
+    if (ret := syncer()) != 0:
+        sys.exit(ret)
 
 
 @app.command("gitea-trigger")
@@ -483,7 +489,8 @@ def gitea_trigger(  # ruff: ignore[too-many-arguments]
     )
 
     syncer = GiteaTrigger(args)
-    sys.exit(syncer())
+    if (ret := syncer()) != 0:
+        sys.exit(ret)
 
 
 @app.command("sub-approve")
@@ -525,7 +532,8 @@ def sub_approve(  # ruff: ignore[too-many-arguments]
     )
 
     approve = Approver(args)
-    sys.exit(approve())
+    if (ret := approve()) != 0:
+        sys.exit(ret)
 
 
 @app.command("sub-comment")
@@ -550,7 +558,8 @@ def sub_comment(
 
     submissions = get_submissions()
     comment = Commenter(args, submissions)
-    sys.exit(comment())
+    if (ret := comment()) != 0:
+        sys.exit(ret)
 
 
 @app.command("sub-sync-results")
@@ -560,7 +569,8 @@ def sub_sync_results(ctx: typer.Context) -> None:
     _require_token(args)
 
     syncer = SubResultsSync(args)
-    sys.exit(syncer())
+    if (ret := syncer()) != 0:
+        sys.exit(ret)
 
 
 @app.command("aggr-sync-results")
@@ -570,7 +580,8 @@ def aggr_sync_results(ctx: typer.Context) -> None:
     _require_token(args)
 
     syncer = AggregateResultsSync(args)
-    sys.exit(syncer())
+    if (ret := syncer()) != 0:
+        sys.exit(ret)
 
 
 @app.command("increment-approve")
@@ -707,7 +718,8 @@ def increment_approve(  # ruff: ignore[too-many-arguments]
     )
 
     approve = IncrementApprover(args)
-    sys.exit(approve())
+    if (ret := approve()) != 0:
+        sys.exit(ret)
 
 
 @app.command("repo-diff")
@@ -727,7 +739,8 @@ def repo_diff(
     args.repo_b = repo_b
 
     repo_diff_obj = RepoDiff(args)
-    sys.exit(repo_diff_obj())
+    if (ret := repo_diff_obj()) != 0:
+        sys.exit(ret)
 
 
 @app.command("amqp")
@@ -746,4 +759,5 @@ def amqp_cmd(
         args.url = config_module.settings.amqp_url
 
     amqp_obj = AMQP(args)
-    sys.exit(amqp_obj())
+    if (ret := amqp_obj()) != 0:
+        sys.exit(ret)
