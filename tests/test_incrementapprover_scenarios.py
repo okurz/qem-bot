@@ -9,7 +9,7 @@ import re
 from argparse import Namespace
 from collections import defaultdict
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 from unittest.mock import patch
 
 import osc.core
@@ -366,7 +366,7 @@ def test_skipping_with_mismatching_package(mocker: MockerFixture, caplog: pytest
 def mock_osc_requests(mocker: MockerFixture) -> None:
     def fake_get_request_list(_url: str, project: str, **_kwargs: Any) -> list[osc.core.Request]:
         req = osc.core.Request()
-        req.state = "review"  # ty: ignore[invalid-assignment]
+        cast("Any", req).state = "review"
         req.reviews = [ReviewState("review", "qam-openqa")]
         if "SL-Micro" in project:
             req.reqid = "399766"

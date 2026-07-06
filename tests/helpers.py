@@ -10,7 +10,7 @@ import re
 from argparse import Namespace
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple, cast
 from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode
 
@@ -154,7 +154,7 @@ def fake_get_request_list(url: str, project: str, **_kwargs: Any) -> list[osc.co
     assert "OBS:PROJECT" in project
     req = osc.core.Request()
     req.reqid = 42
-    req.state = "review"  # ty: ignore[invalid-assignment]
+    cast("Any", req).state = "review"
     req.reviews = [ReviewState("review", settings.obs_group)]
     req.actions = [
         Action(
@@ -252,10 +252,10 @@ def prepare_approver(
         patch("openqabot.config.settings.obs_url", "https://api.suse.de"),
     ):
         approver = IncrementApprover(args)
-        approver.client.get_single_job = MagicMock(
+        cast("Any", approver.client).get_single_job = MagicMock(
             side_effect=lambda job_id: {"id": job_id, "group": "Production", "group_id": 1}
         )
-        approver.client.get_jobs_by_ids = MagicMock(
+        cast("Any", approver.client).get_jobs_by_ids = MagicMock(
             side_effect=lambda ids: [
                 {
                     "id": jid,
@@ -269,7 +269,7 @@ def prepare_approver(
                 for jid in ids
             ]
         )
-        approver.client.is_devel_group = MagicMock(return_value=False)
+        cast("Any", approver.client).is_devel_group = MagicMock(return_value=False)
         return approver
 
 
