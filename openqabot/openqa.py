@@ -47,6 +47,7 @@ class OpenQAInterface:
         self.retries = number_of_retries()
         user_agent = {"User-Agent": "python-OpenQA_Client/qem-bot/1.0.0"}
         self.openqa.session.headers.update(user_agent)
+        self.job_map: dict[int, dict[str, Any]] = {}
 
     def __bool__(self) -> bool:
         """Return True only for the configured openQA instance.

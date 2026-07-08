@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 import responses
+
 from openqabot import config
 from openqabot.errors import PostOpenQAError
 from openqabot.incrementapprover import BuildInfo
@@ -147,14 +148,17 @@ def test_request_openqa_job_results_enrichment_missing_data(
 
 
 _FILTER_RESULTS_INPUT = [
-    {"passed": {"j1": {"job_ids": [1]}, "j2": {"job_ids": [1, 2]}}, "failed": {"j3": {"job_ids": [2]}}}
+    {
+        "passed": {"j1": {"job_ids": [1], "group_id": 1}, "j2": {"job_ids": [1, 2], "group_id": 9}},
+        "failed": {"j3": {"job_ids": [2], "group_id": 9}},
+    }
 ]
 
 
 @pytest.mark.parametrize(
     ("devel_filter", "expected"),
     [
-        (True, [{"passed": {"j1": {"job_ids": [1]}, "j2": {"job_ids": [1]}}}]),
+        (True, [{"passed": {"j1": {"job_ids": [1], "group_id": 1}}}]),
         (False, _FILTER_RESULTS_INPUT),
     ],
 )

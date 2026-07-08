@@ -543,17 +543,6 @@ class IncrementApprover:
             )
         return error_count
 
-    def _process_single_config(self, config_inc: IncrementConfig, single_request: osc.core.Request | None) -> int:
-        if single_request and single_request.actions[0].src_project != config_inc.build_project():
-            log.debug(
-                "Skipping config %s as it does not match request %s project %s",
-                config_inc.build_project(),
-                self.args.request_id,
-                single_request.actions[0].src_project,
-            )
-            return 0
-        return self.process_request_for_config(find_request_on_obs(self.args, config_inc.build_project()), config_inc)
-
     def __call__(self) -> int:
         """Run the increment approval process."""
         # --request-id is an explicit, ad-hoc operator override: the caller is expected to
