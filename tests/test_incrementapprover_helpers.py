@@ -7,9 +7,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 import pytest
-from openqabot import config
 import responses
 
+from openqabot import config
 from openqabot.errors import PostOpenQAError
 from openqabot.incrementapprover import BuildInfo
 from openqabot.repodiff import Package
@@ -115,11 +115,15 @@ def test_extra_builds_for_package_parametrized(
 
 def test_filter_results(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -> None:
     approver = prepare_approver(caplog)
+    mocker.patch.object(config.settings, "devel_filter", new=True)
+    mocker.patch.object(
+        approver.client, "get_single_job", side_effect=lambda jid: {"id": jid, "group_id": 9 if jid == 2 else 1}
+    )
     mocker.patch.object(approver.client, "is_in_devel_group", side_effect=lambda j: j.get("group_id") == 9)
 
     results = [
         {
-            "passed": {"j1": {"job_ids": [1], "group_id": 1}, "j2": {"job_ids": [1, 2], "group_id": 9}},
+            "passed": {"j1": {"job_ids": [1], "group_id": 1}, "j2": {"job_ids": [2], "group_id": 9}},
             "failed": {"j3": {"job_ids": [2], "group_id": 9}},
         }
     ]

@@ -114,6 +114,11 @@ class IncrementApprover:
             )
         return match
 
+    def is_in_devel_group(self, job_id: int) -> bool:
+        """Fetch job details and check if it belongs to a development group."""
+        job = self.client.get_single_job(job_id)
+        return self.client.is_in_devel_group(job) if job else False
+
     def _filter_jobs(self, jobs: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
         """Filter jobs within a state, removing those in devel groups."""
         if not config.settings.devel_filter:

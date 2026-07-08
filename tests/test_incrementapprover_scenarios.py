@@ -563,6 +563,7 @@ def test_approval_with_mixed_jobs_development_ignored(
     increment_approver.client.get_jobs_by_ids = mocker.Mock(
         side_effect=lambda ids: [job_map[jid] for jid in ids if jid in job_map]
     )
+    increment_approver.client.get_single_job = mocker.Mock(side_effect=job_map.get)
     increment_approver.client.is_devel_group = mocker.Mock(side_effect=lambda gid: gid == 9)
     increment_approver()
 
@@ -580,6 +581,7 @@ def test_approval_with_mixed_jobs_development_ignored(
 def test_approval_if_running_jobs_are_in_development_group(
     mocker: MockerFixture, caplog: pytest.LogCaptureFixture, fake_openqa_url_job_stat: str
 ) -> None:
+    mocker.patch("openqabot.config.settings.devel_filter", new=True)
     responses.add(
         responses.GET,
         fake_openqa_url_job_stat,
@@ -594,6 +596,7 @@ def test_approval_if_running_jobs_are_in_development_group(
     increment_approver.client.get_jobs_by_ids = mocker.Mock(
         side_effect=lambda ids: [job_map[jid] for jid in ids if jid in job_map]
     )
+    increment_approver.client.get_single_job = mocker.Mock(side_effect=job_map.get)
     increment_approver.client.is_in_devel_group = mocker.Mock(side_effect=lambda j: "Development" in j.get("group", ""))
     increment_approver()
 
@@ -606,6 +609,7 @@ def test_approval_if_running_jobs_are_in_development_group(
 def test_no_retrigger_if_jobs_exist_in_development_group(
     mocker: MockerFixture, caplog: pytest.LogCaptureFixture, fake_openqa_url_job_stat: str
 ) -> None:
+    mocker.patch("openqabot.config.settings.devel_filter", new=True)
     # 1. Setup: a failed job exists in job_stats
     responses.add(
         responses.GET,
@@ -628,6 +632,7 @@ def test_no_retrigger_if_jobs_exist_in_development_group(
     increment_approver.client.is_devel_group = mocker.Mock(return_value=True)
 
     mock_post_job = mocker.patch.object(increment_approver.client, "post_job")
+    mocker.patch("osc.core.change_review_state")
 
     increment_approver()
 
@@ -635,7 +640,7 @@ def test_no_retrigger_if_jobs_exist_in_development_group(
     # Job 123 was found, so it shouldn't re-trigger even though it was filtered
     # out for evaluation.
     mock_post_job.assert_not_called()
-    assert "No jobs for evaluation (filtered) for" in caplog.text
+    assert "All jobs filtered for" in caplog.text
     assert "Scheduling jobs for" not in caplog.text
 
 
