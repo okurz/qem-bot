@@ -101,9 +101,9 @@ def test_get_submissions_error(mock_get_json: MagicMock) -> None:
     with pytest.raises(LoaderQemError):
         get_submissions()
 
-    mock_get_json.return_value = {"error": "some other error"}
+    mock_get_json.return_value = [{"error": "some other error"}]
     with pytest.raises(LoaderQemError):
-        get_submissions("git:123")
+        get_submissions()
 
 
 def test_get_single_submission_error(mock_get_json: MagicMock, caplog: pytest.LogCaptureFixture) -> None:
