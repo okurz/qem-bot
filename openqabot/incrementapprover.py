@@ -169,7 +169,6 @@ class IncrementApprover:
         log.debug("Job statistics:\n%s", pformat(res))
         return res
 
-
     @staticmethod
     def check_openqa_jobs(results: OpenQAResults, build_info: BuildInfo, params: ScheduleParams) -> JobState:
         """Check if all openQA jobs are finished."""

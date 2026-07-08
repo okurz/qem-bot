@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 import responses
+
 from openqabot import config
 from openqabot.errors import PostOpenQAError
 from openqabot.incrementapprover import BuildInfo
@@ -170,3 +171,17 @@ def test_filter_results(
     mocker.patch.object(approver.client, "is_in_devel_group", side_effect=lambda j: j.get("group_id") == 9)
     mocker.patch.object(config.settings, "allow_development_groups", new=allow_development_groups)
     assert approver._filter_results(_FILTER_RESULTS_INPUT) == expected  # noqa: SLF001
+
+
+def test_is_in_devel_group(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -> None:
+    approver = prepare_approver(caplog)
+    mocker.patch.object(approver.client, "get_single_job", return_value={"group_id": 9})
+    mocker.patch.object(approver.client, "is_in_devel_group", return_value=True)
+    assert approver.is_in_devel_group(1) is True
+
+    mocker.patch.object(approver.client, "get_single_job", return_value={"group_id": 1})
+    mocker.patch.object(approver.client, "is_in_devel_group", return_value=False)
+    assert approver.is_in_devel_group(1) is False
+
+    mocker.patch.object(approver.client, "get_single_job", return_value=None)
+    assert approver.is_in_devel_group(1) is False

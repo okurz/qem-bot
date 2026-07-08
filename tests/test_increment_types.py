@@ -30,7 +30,7 @@ def test_build_identifier_from_params() -> None:
 
 
 def test_build_identifier_badge_params(mocker: MockerFixture) -> None:
-    mocker.patch("openqabot.config.settings.allow_development_groups", None)
+    mocker.patch("openqabot.config.settings.allow_development_groups", new=False)
     bi = BuildIdentifier("123", "sle", "15-SP3")
     params = bi.get_base_badge_params()
     assert params["build"] == "123"
