@@ -7,7 +7,7 @@ from __future__ import annotations
 from logging import getLogger
 from pprint import pformat
 from typing import TYPE_CHECKING, Any
-from urllib.parse import quote, urlencode, urlparse
+from urllib.parse import urlencode
 
 import osc.conf
 

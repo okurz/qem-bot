@@ -11,7 +11,7 @@ from lxml import etree  # ty: ignore[unresolved-import]
 from pytest_mock import MockerFixture
 
 from openqabot.loader import gitea
-from openqabot.types.pullrequest import PullRequest
+from openqabot.types.pullrequest import OBSCommentable, PullRequest
 
 
 def test_make_submission_from_gitea_pr_dry(mocker: MockerFixture) -> None:
@@ -75,7 +75,10 @@ def test_make_submission_from_gitea_pr_skips(mocker: MockerFixture, caplog: pyte
     assert "PR git:123 skipped: No packages found" in caplog.text
 
 
-def test_make_submission_from_gitea_pr_dry_other_number_passes(mocker: MockerFixture) -> None:
+def test_make_submission_from_gitea_pr_dry_other_number_passes(
+    mocker: MockerFixture, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level(logging.INFO, logger="bot.loader.gitea")
     pr_dict = {
         "number": 999,
         "state": "open",
@@ -86,9 +89,9 @@ def test_make_submission_from_gitea_pr_dry_other_number_passes(mocker: MockerFix
     assert pr is not None
     mocker.patch("openqabot.loader.gitea.iter_gitea_items", return_value=[])
     mocker.patch("openqabot.loader.gitea.add_reviews", return_value=0)
-    res = gitea.make_submission_from_gitea_pr(pr, {}, only_successful_builds=False, only_requested_prs=True, dry=False)
+    res = gitea.make_submission_from_gitea_pr(pr, {}, only_successful_builds=False, only_requested_prs=True, dry=True)
     assert res is None
-    assert "PR git:123 skipped: No reviews by" in caplog.text
+    assert "PR git:999 skipped: No reviews by" in caplog.text
 
 
 def test_is_review_requested_by_explicit_users() -> None:
@@ -173,3 +176,8 @@ def test_make_submission_from_gitea_pr_exception(mocker: MockerFixture, caplog: 
     res = gitea.make_submission_from_gitea_pr(pr, {}, only_successful_builds=False, only_requested_prs=False, dry=False)
     assert res is None
     assert "Gitea API error: Unable to process PR git:123" in caplog.text
+
+
+def test_obs_commentable_project() -> None:
+    obs = OBSCommentable(123)
+    assert not obs.project
