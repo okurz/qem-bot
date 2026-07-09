@@ -14,6 +14,7 @@ import typer
 from typer.testing import CliRunner
 
 from openqabot.args import app, main
+from openqabot.config import settings
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -345,3 +346,100 @@ def test_main_fake_data(mocker: MockerFixture, tmp_path: Path) -> None:
     result = runner.invoke(app, ["--fake-data", "--token", "foo", "--configs", str(tmp_path), "full-run"])
     assert result.exit_code == 0
     setup_mock.assert_called_once()
+
+
+def test_config_yml_loading(mocker: MockerFixture, tmp_path: Path) -> None:
+    """Test that args.py loads config.yml and updates settings and ctx.obj correctly."""
+    config_file = tmp_path / "config.yml"
+    config_file.write_text("OPENQA_INSTANCE: https://yaml.openqa.org\nQEM_BOT_RETRY: 7\n")
+
+    bot = mocker.patch("openqabot.args.OpenQABot")
+    bot.return_value.return_value = 0
+
+    # Store original values
+    orig_openqa = settings.openqa_instance
+    orig_retry = settings.retry
+
+    try:
+        result = runner.invoke(app, ["--token", "foo", "--configs", str(tmp_path), "full-run"])
+        assert result.exit_code == 0
+        bot.assert_called_once()
+        args = bot.call_args[0][0]
+        # Verify that it loaded the values from config.yml
+        assert settings.openqa_instance == "https://yaml.openqa.org"
+        assert settings.retry == 7
+        assert args.retry == 7
+    finally:
+        # Restore originals
+        settings.openqa_instance = orig_openqa
+        settings.retry = orig_retry
+
+
+def test_config_yml_loading_non_dict(mocker: MockerFixture, tmp_path: Path) -> None:
+    """Test when config.yml exists but is not a dictionary."""
+    config_file = tmp_path / "config.yml"
+    config_file.write_text("- list_item_1\n- list_item_2\n")
+    bot = mocker.patch("openqabot.args.OpenQABot")
+    bot.return_value.return_value = 0
+    result = runner.invoke(app, ["--token", "foo", "--configs", str(tmp_path), "full-run"])
+    assert result.exit_code == 0
+
+
+def test_config_yml_loading_yaml_error(mocker: MockerFixture, tmp_path: Path) -> None:
+    """Test when config.yml exists but has invalid YAML syntax."""
+    config_file = tmp_path / "config.yml"
+    config_file.write_text("invalid_yaml: [unclosed_bracket")
+    bot = mocker.patch("openqabot.args.OpenQABot")
+    bot.return_value.return_value = 0
+    result = runner.invoke(app, ["--token", "foo", "--configs", str(tmp_path), "full-run"])
+    assert result.exit_code == 0
+
+
+def test_config_yml_loading_generic_error(mocker: MockerFixture, tmp_path: Path) -> None:
+    """Test when config.yml exists but reading raises a generic Exception."""
+    config_file = tmp_path / "config.yml"
+    config_file.write_text("OPENQA_INSTANCE: https://yaml.openqa.org\n")
+    bot = mocker.patch("openqabot.args.OpenQABot")
+    bot.return_value.return_value = 0
+
+    # Mock Path.open to raise an OSError
+    mocker.patch("pathlib.Path.open", side_effect=OSError("Read permission denied"))
+    result = runner.invoke(app, ["--token", "foo", "--configs", str(tmp_path), "full-run"])
+    assert result.exit_code == 0
+
+
+def test_apply_cli_overrides_coverage(mocker: MockerFixture, tmp_path: Path) -> None:
+    """Test that CLI overrides update global settings (for branches coverage)."""
+    bot = mocker.patch("openqabot.args.OpenQABot")
+    bot.return_value.return_value = 0
+
+    # Store original values
+    orig_insecure = settings.insecure
+    orig_dry = settings.dry
+    orig_openqa = settings.openqa_instance
+
+    try:
+        # Enable insecure and dry to cover _apply_cli_overrides branches
+        result = runner.invoke(
+            app,
+            [
+                "--token",
+                "foo",
+                "--configs",
+                str(tmp_path),
+                "--insecure",
+                "--dry",
+                "--openqa-instance",
+                "https://override.openqa",
+                "full-run",
+            ],
+        )
+        assert result.exit_code == 0
+        assert settings.insecure is True
+        assert settings.dry is True
+        assert settings.openqa_instance == "https://override.openqa"
+    finally:
+        # Restore originals
+        settings.insecure = orig_insecure
+        settings.dry = orig_dry
+        settings.openqa_instance = orig_openqa

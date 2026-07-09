@@ -38,6 +38,14 @@ class Settings(BaseSettings):
         """
         super().__init__(*args, **kwargs)
 
+    def update_from_dict(self, data: dict[str, Any]) -> None:
+        """Update settings from a dictionary, supporting field names and aliases."""
+        for key, value in data.items():
+            for field_name, field in self.__class__.model_fields.items():
+                if key in {field_name, field.alias}:
+                    setattr(self, field_name, value)
+                    break
+
     # Global options
     configs: Path = Field(default=Path("/etc/openqabot"), alias="QEM_BOT_CONFIGS")
     dry: bool = Field(default=False, alias="QEM_BOT_DRY")

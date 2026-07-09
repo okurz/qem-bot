@@ -8,10 +8,11 @@ import logging
 import sys
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Annotated
+from typing import Annotated, Any
 
 import responses
 import typer
+from ruamel.yaml import YAML, YAMLError
 
 import openqabot.config as config_module
 
@@ -101,6 +102,39 @@ max_detailed_comment_entries_option = Annotated[
 ]
 
 
+def _load_config_yml(configs_path: Path) -> dict[str, Any] | None:
+    metadata_dir = configs_path if configs_path.is_dir() else configs_path.parent
+    config_yml = metadata_dir / "config.yml"
+    if not config_yml.exists():
+        return None
+
+    loader = YAML(typ="safe")
+    try:
+        with Path(config_yml).open(encoding="utf-8") as f:
+            loaded_data = loader.load(f)
+        if isinstance(loaded_data, dict):
+            return loaded_data
+    except YAMLError:
+        log.exception("Failed to parse config.yml")
+    except Exception:
+        log.exception("Failed to read config.yml")
+    return None
+
+
+def _apply_cli_overrides(
+    *,
+    insecure: bool,
+    openqa_instance: str | None,
+    dry: bool,
+) -> None:
+    if insecure:
+        config_module.settings.insecure = True
+    if openqa_instance is not None:
+        config_module.settings.openqa_instance = openqa_instance
+    if dry:
+        config_module.settings.dry = True
+
+
 def _apply_detailed_comment_options(
     args: SimpleNamespace,
     *,
@@ -184,33 +218,41 @@ def main(  # noqa: PLR0913
         typer.Option("-g", "--gitea-token", envvar="QEM_BOT_GITEA_TOKEN", help="Token for Gitea api"),
     ] = None,
     openqa_instance: Annotated[
-        str,
+        str | None,
         typer.Option(
             "-i",
             "--openqa-instance",
             envvar="OPENQA_INSTANCE",
             help="The openQA instance to use\n Other instances than OSD do not update dashboard database",
+            show_default="https://openqa.suse.de",
         ),
-    ] = "https://openqa.suse.de",
+    ] = None,
     singlearch: Annotated[
-        Path,
+        Path | None,
         typer.Option(
             "-s",
             "--singlearch",
             envvar="QEM_BOT_SINGLEARCH",
             help="Yaml config with list of singlearch packages for submissions run",
+            show_default="/etc/openqabot/singlearch.yml",
         ),
-    ] = Path("/etc/openqabot/singlearch.yml"),
-    retry: Annotated[int, typer.Option("-r", "--retry", envvar="QEM_BOT_RETRY", help="Number of retries")] = 2,
+    ] = None,
+    retry: Annotated[
+        int | None,
+        typer.Option(
+            "-r",
+            "--retry",
+            envvar="QEM_BOT_RETRY",
+            help="Number of retries",
+            show_default="2",
+        ),
+    ] = None,
 ) -> None:
     """QEM-Dashboard, SMELT, Gitea and openQA connector."""
     # Configure logging
     log_obj = create_logger("bot")
     if debug:
         log_obj.setLevel(logging.DEBUG)
-
-    # Update global configuration
-    config_module.settings.insecure = insecure
 
     # Check if help is in the arguments
     if any(arg in sys.argv for arg in ctx.help_option_names):
@@ -219,6 +261,21 @@ def main(  # noqa: PLR0913
     if not configs.exists():
         log.error("Configuration error: %s does not exist", configs)
         sys.exit(1)
+
+    # Load config.yml if it exists
+    if loaded_data := _load_config_yml(configs):
+        config_module.settings.update_from_dict(loaded_data)
+
+    # Update global configuration based on explicitly provided CLI options
+    _apply_cli_overrides(insecure=insecure, openqa_instance=openqa_instance, dry=dry)
+
+    # Resolve token, gitea_token, singlearch, retry from settings if not passed on CLI
+    resolved_dry = config_module.settings.dry
+    resolved_insecure = config_module.settings.insecure
+    resolved_token = token if token is not None else config_module.settings.token
+    resolved_gitea_token = gitea_token if gitea_token is not None else config_module.settings.gitea_token
+    resolved_singlearch = singlearch if singlearch is not None else config_module.settings.singlearch
+    resolved_retry = retry if retry is not None else config_module.settings.retry
 
     if fake_data:
         setup_mock_responses()
@@ -232,20 +289,22 @@ def main(  # noqa: PLR0913
     # Store global options in context
     ctx.obj = SimpleNamespace(
         configs=configs,
-        dry=dry,
+        dry=resolved_dry,
         fake_data=fake_data,
         dump_data=dump_data,
         debug=debug,
-        insecure=insecure,
-        token=token,
-        gitea_token=gitea_token,
-        singlearch=singlearch,
-        retry=retry,
+        insecure=resolved_insecure,
+        token=resolved_token,
+        gitea_token=resolved_gitea_token,
+        singlearch=resolved_singlearch,
+        retry=resolved_retry,
     )
 
-    config_module.settings.openqa_instance = openqa_instance
-    config_module.settings.dry = dry
-    config_module.settings.token = token
+    config_module.settings.dry = resolved_dry
+    config_module.settings.singlearch = resolved_singlearch
+    config_module.settings.retry = resolved_retry
+    if resolved_token is not None:
+        config_module.settings.token = resolved_token
 
 
 @app.command()

@@ -105,3 +105,17 @@ def test_insecure_setting() -> None:
 
     settings = Settings(QEM_BOT_INSECURE=False)
     assert settings.insecure is False
+
+
+def test_update_from_dict() -> None:
+    """Test updating Settings from a dictionary via direct names and aliases."""
+    settings = Settings()
+    # Test field name update and alias update
+    settings.update_from_dict({
+        "openqa_instance": "https://custom.openqa",
+        "OBS_URL": "https://custom.obs",
+        "QEM_BOT_RETRY": "5",  # Pydantic should cast string to int
+    })
+    assert settings.openqa_instance == "https://custom.openqa"
+    assert settings.obs_url == "https://custom.obs"
+    assert settings.retry == 5
