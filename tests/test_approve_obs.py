@@ -55,7 +55,7 @@ def test_403_response(caplog: pytest.LogCaptureFixture, mocker: MockerFixture) -
     mocker.patch("openqabot.approver.approve_pr", return_value=True)
     caplog.set_level(logging.DEBUG, logger="bot.approver")
     mocker.patch("osc.core.change_review_state", side_effect=ObsHTTPError(403, "Not allowed", "sd", None))
-    assert Approver(args)() == 0
+    assert Approver(args)() == 1
     assert "Received 'Not allowed'. Request 100 likely already approved, ignoring" in caplog.messages
 
 
