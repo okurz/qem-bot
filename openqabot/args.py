@@ -450,6 +450,58 @@ def submissions_run(
         sys.exit(ret)
 
 
+@app.command("handle-submissions")
+def handle_submissions(  # ruff: ignore[too-many-arguments]
+    ctx: typer.Context,
+    *,
+    ignore_onetime: Annotated[
+        bool,
+        typer.Option("-i", "--ignore-onetime", help="Ignore onetime and schedule those test runs"),
+    ] = False,
+    submission: Annotated[
+        str | None,
+        typer.Option(
+            "-I",
+            "--submission",
+            help="Submission ID (to process and approve only a single submission)",
+        ),
+    ] = None,
+    all_submissions: Annotated[
+        bool,
+        typer.Option("--all-submissions", help="use all submissions without care about rrid for approval"),
+    ] = False,
+    comment: comment_option = True,
+    enable_detailed_comments: enable_detailed_comments_option = None,
+    fallback_contact: fallback_contact_option = None,
+    generic_tool_issues_contact: generic_tool_issues_contact_option = None,
+    max_detailed_comment_entries: max_detailed_comment_entries_option = None,
+) -> None:
+    """Schedule tests, sync results, and approve Maintenance Submissions."""
+    args = ctx.obj
+    _require_token(args)
+
+    # 1. Submissions Schedule
+    args.ignore_onetime = ignore_onetime
+    args.submission = submission
+    args.disable_submissions = False
+    args.disable_aggregates = True
+    bot_ret = OpenQABot(args)()
+
+    # 2. Sync Results
+    sync_ret = SubResultsSync(args)()
+
+    # 3. Approve Submissions
+    args.all_submissions = all_submissions
+    args.comment = comment
+    args.enable_detailed_comments = enable_detailed_comments
+    args.fallback_contact = fallback_contact
+    args.generic_tool_issues_contact = generic_tool_issues_contact
+    args.max_detailed_comment_entries = max_detailed_comment_entries
+    approve_ret = Approver(args)()
+
+    sys.exit(bot_ret or sync_ret or approve_ret)
+
+
 @app.command("updates-run")
 def updates_run(
     ctx: typer.Context,
