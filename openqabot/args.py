@@ -420,7 +420,7 @@ def full_run(
         sys.exit(ret)
 
 
-@app.command("submissions-run")
+@advanced_app.command("submissions-run")
 def submissions_run(
     ctx: typer.Context,
     *,
@@ -636,7 +636,7 @@ def gitea_trigger(  # ruff: ignore[too-many-arguments]
         sys.exit(ret)
 
 
-@app.command("sub-approve")
+@advanced_app.command("sub-approve")
 def sub_approve(  # ruff: ignore[too-many-arguments]
     ctx: typer.Context,
     *,
@@ -706,7 +706,7 @@ def sub_comment(
         sys.exit(ret)
 
 
-@app.command("sub-sync-results")
+@advanced_app.command("sub-sync-results")
 def sub_sync_results(ctx: typer.Context) -> None:
     """Sync results of openQA submission jobs to Dashboard."""
     args = ctx.obj

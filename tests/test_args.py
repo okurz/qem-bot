@@ -26,13 +26,13 @@ runner = CliRunner()
     ("cmd", "mock_path", "disable_aggregates", "disable_submissions"),
     [
         ("full-run", "openqabot.args.OpenQABot", False, False),
-        ("submissions-run", "openqabot.args.OpenQABot", True, False),
+        (["advanced", "submissions-run"], "openqabot.args.OpenQABot", True, False),
         ("updates-run", "openqabot.args.OpenQABot", False, True),
         (["advanced", "smelt-sync"], "openqabot.args.SMELTSync", None, None),
         (["advanced", "gitea-sync"], "openqabot.args.GiteaSync", None, None),
         ("gitea-trigger", "openqabot.args.GiteaTrigger", None, None),
         (["advanced", "sub-comment"], "openqabot.args.Commenter", None, None),
-        ("sub-sync-results", "openqabot.args.SubResultsSync", None, None),
+        (["advanced", "sub-sync-results"], "openqabot.args.SubResultsSync", None, None),
         ("aggr-sync-results", "openqabot.args.AggregateResultsSync", None, None),
         ("increment-approve", "openqabot.args.IncrementApprover", None, None),
         (["advanced", "repo-diff"], "openqabot.args.RepoDiff", None, None),
@@ -133,7 +133,9 @@ def test_sub_approve(
 ) -> None:
     approve = mocker.patch("openqabot.args.Approver")
     approve.return_value.return_value = 0
-    result = runner.invoke(app, ["--token", "foo", "--configs", str(tmp_path), "sub-approve", *extra_args], env=env)
+    result = runner.invoke(
+        app, ["--token", "foo", "--configs", str(tmp_path), "advanced", "sub-approve", *extra_args], env=env
+    )
     assert result.exit_code == 0
     approve.assert_called_once()
     assert approve.call_args[0][0].comment is expected_comment
@@ -430,15 +432,15 @@ def test_gitea_sync_pr_number_with_multiple_projects(tmp_path: Path) -> None:
     ("cmd", "mock_path"),
     [
         ("full-run", "openqabot.args.OpenQABot"),
-        ("submissions-run", "openqabot.args.OpenQABot"),
+        (["advanced", "submissions-run"], "openqabot.args.OpenQABot"),
         ("updates-run", "openqabot.args.OpenQABot"),
         ("sync", "openqabot.args.SMELTSync"),
         (["advanced", "smelt-sync"], "openqabot.args.SMELTSync"),
         (["advanced", "gitea-sync"], "openqabot.args.GiteaSync"),
         ("gitea-trigger", "openqabot.args.GiteaTrigger"),
-        ("sub-approve", "openqabot.args.Approver"),
+        (["advanced", "sub-approve"], "openqabot.args.Approver"),
         (["advanced", "sub-comment"], "openqabot.args.Commenter"),
-        ("sub-sync-results", "openqabot.args.SubResultsSync"),
+        (["advanced", "sub-sync-results"], "openqabot.args.SubResultsSync"),
         ("aggr-sync-results", "openqabot.args.AggregateResultsSync"),
         ("increment-approve", "openqabot.args.IncrementApprover"),
         (["advanced", "repo-diff"], "openqabot.args.RepoDiff"),
@@ -467,7 +469,9 @@ def test_command_chaining_success(mocker: MockerFixture, tmp_path: Path) -> None
     bot = mocker.patch("openqabot.args.OpenQABot")
     bot.return_value.return_value = 0
 
-    result = runner.invoke(app, ["--token", "foo", "--configs", str(tmp_path), "full-run", "submissions-run"])
+    result = runner.invoke(
+        app, ["--token", "foo", "--configs", str(tmp_path), "full-run", "advanced", "submissions-run"]
+    )
     assert result.exit_code == 0
     assert bot.call_count == 2
 
@@ -477,7 +481,9 @@ def test_command_chaining_fail_fast(mocker: MockerFixture, tmp_path: Path) -> No
     bot = mocker.patch("openqabot.args.OpenQABot")
     bot.side_effect = [1, 0]
 
-    result = runner.invoke(app, ["--token", "foo", "--configs", str(tmp_path), "full-run", "submissions-run"])
+    result = runner.invoke(
+        app, ["--token", "foo", "--configs", str(tmp_path), "full-run", "advanced", "submissions-run"]
+    )
     assert result.exit_code == 1
     bot.assert_called_once()
 
