@@ -1,0 +1,38 @@
+#!BuildTag: opensuse/qem-bot:latest opensuse/qem-bot:%RELEASE%
+FROM opensuse/tumbleweed
+
+# labelprefix=org.opensuse.qem-bot
+LABEL org.opencontainers.image.title="qem-bot container"
+LABEL org.opencontainers.image.description="Tool for scheduling maintenance tests on openQA"
+LABEL org.opencontainers.image.version="%RELEASE%"
+LABEL org.opensuse.reference="registry.opensuse.org/opensuse/qem-bot:%RELEASE%"
+LABEL org.openbuildservice.disturl="%DISTURL%"
+LABEL org.opencontainers.image.created="%BUILDTIME%"
+# endlabelprefix
+
+RUN zypper --gpg-auto-import-keys ref \
+    && zypper in -y -C \
+        ca-certificates \
+        git \
+        openssh-clients \
+        python3-PyYAML \
+        python3-jsonschema \
+        python3-lxml \
+        python3-openqa_client \
+        python3-osc \
+        python3-pika \
+        python3-pydantic-settings \
+        python3-pyzstd \
+        python3-requests \
+        python3-responses \
+        python3-ruamel.yaml \
+        python3-typer \
+        python3-urllib3 \
+    && zypper clean -a
+
+WORKDIR /app
+COPY . .
+
+RUN ./qem-bot.py --help
+
+ENTRYPOINT ["./qem-bot.py"]
