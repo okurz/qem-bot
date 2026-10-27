@@ -1,5 +1,21 @@
 # Containerized deployment using Podman and Quadlets
 
+## Variants
+
+Two container variants are supported:
+
+- **Internal SUSE variant** (`containers/suse/Containerfile`):
+  Uses the internal SUSE CA and bakes the internal `metadata` repository clone.
+  Built locally on host as `localhost/qem-bot` via `qem-bot.build`.
+
+- **openSUSE variant** (`containers/opensuse/Containerfile`):
+  Pure openSUSE Tumbleweed container using upstream distribution packages.
+  Published by OBS to `registry.opensuse.org/opensuse/qem-bot:latest`.
+  Deployment uses external configuration mounted at `/etc/openqabot` (such as
+  the standalone quadlet `containers/systemd/qem-bot-opensuse.container`).
+
+## Local Deployment (SUSE Internal)
+
 0. Complete steps from [qem-dashboard](https://github.com/openSUSE/qem-dashboard/tree/main/docs/Containers.md)
 1. `cd /var/lib/data/qem`
 2. `git clone https://github.com/openSUSE/qem-bot.git`
@@ -22,3 +38,26 @@ chmod 600 /var/lib/data/qem/ssh/id_rsa
 6. `for quadlet in qem-bot/containers/systemd/*; do ln -s "$PWD/$quadlet" /etc/containers/systemd/; done`
    (builds the internal SUSE image from `containers/suse/Containerfile` via `qem-bot.build`)
 7. `systemctl daemon-reload && systemctl start qem-bot-gitea-sync`
+
+## OBS Container Build & Deployment (openSUSE)
+
+The openSUSE container is automatically built in the Open Build Service project
+`devel:openQA` under the package `qem-bot-container` using `containers/opensuse/_service`.
+
+To configure automatic rebuilds on GitHub `main` branch push:
+
+1. In OBS project `devel:openQA`, create or configure package `qem-bot-container`
+   with repository `containers` enabled, and upload `containers/opensuse/_service`.
+2. Generate an OBS API token for `devel:openQA/qem-bot-container` with `operation=runservice`
+   via the OBS WebUI (`/users/tokens`) or API (`POST /person/<user>/token`).
+3. In GitHub repository settings (`openSUSE/qem-bot`), add a webhook:
+   - Payload URL: `https://api.opensuse.org/trigger/webhook?id=<token_id>`
+   - Content type: `application/json`
+   - Secret: `<token_secret_string>`
+   - Events: `push` (branch: `main`)
+
+Published images are available at:
+`registry.opensuse.org/opensuse/qem-bot:latest`
+
+Use `containers/systemd/qem-bot-opensuse.container` to run the image with
+auto-updates from the registry and configuration mounted at `/etc/openqabot`.
