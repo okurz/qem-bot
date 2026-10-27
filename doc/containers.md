@@ -35,7 +35,7 @@ mkdir -p /var/lib/data/qem/ssh
 echo "$SSH_PRIV_KEY" > /var/lib/data/qem/ssh/id_rsa
 chmod 600 /var/lib/data/qem/ssh/id_rsa
 ```
-6. `for quadlet in qem-bot/containers/systemd/*; do ln -s "$PWD/$quadlet" /etc/containers/systemd/; done`
+6. `ln -s "$PWD/qem-bot/containers/systemd/qem-bot.build" "$PWD/qem-bot/containers/systemd/qem-bot-gitea-sync.container" /etc/containers/systemd/`
    (builds the internal SUSE image from `containers/suse/Containerfile` via `qem-bot.build`)
 7. `systemctl daemon-reload && systemctl start qem-bot-gitea-sync`
 
@@ -44,7 +44,7 @@ chmod 600 /var/lib/data/qem/ssh/id_rsa
 The openSUSE container is automatically built in the Open Build Service project
 `devel:openQA` under the package `qem-bot-container` using `containers/opensuse/_service`.
 
-To configure automatic rebuilds on GitHub `main` branch push:
+To configure automatic rebuilds on GitHub `master` branch push:
 
 1. In OBS project `devel:openQA`, create or configure package `qem-bot-container`
    with repository `containers` enabled, and upload `containers/opensuse/_service`.
@@ -54,7 +54,7 @@ To configure automatic rebuilds on GitHub `main` branch push:
    - Payload URL: `https://api.opensuse.org/trigger/webhook?id=<token_id>`
    - Content type: `application/json`
    - Secret: `<token_secret_string>`
-   - Events: `push` (branch: `main`)
+   - Events: `push` (branch: `master`)
 
 Published images are available at:
 `registry.opensuse.org/opensuse/qem-bot:latest`

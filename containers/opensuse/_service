@@ -2,10 +2,10 @@
   <service name="obs_scm">
     <param name="scm">git</param>
     <param name="url">https://github.com/openSUSE/qem-bot</param>
-    <param name="revision">main</param>
+    <param name="revision">master</param>
     <param name="versionprefix">1</param>
     <param name="versionformat">%ct.%h</param>
-    <param name="extract">containers/opensuse/Containerfile</param>
+    <param name="extract">containers/opensuse/Dockerfile</param>
     <param name="changesgenerate">enable</param>
     <param name="changesauthor">okurz@suse.de</param>
     <param name="exclude-re">^tests/</param>
