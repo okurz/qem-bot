@@ -19,7 +19,7 @@ Two container variants are supported:
 0. Complete steps from [qem-dashboard](https://github.com/openSUSE/qem-dashboard/tree/main/docs/Containers.md)
 1. `cd /var/lib/data/qem`
 2. `git clone https://github.com/openSUSE/qem-bot.git`
-3. `echo -e "GITEA_TOKEN=123\nDASHBOARD_TOKEN=s3cret" > /var/lib/data/qem/qem-bot.env`
+3. `echo -e "GITEA_TOKEN=123\nDASHBOARD_TOKEN=s3cret\nQEM_DASHBOARD_URL=http://localhost:3000/" > /var/lib/data/qem/qem-bot.env`
 4. ```
 cat > /var/lib/data/qem/oscrc <<EOF
 [general]
