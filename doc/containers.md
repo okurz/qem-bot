@@ -41,7 +41,7 @@ chmod 600 /var/lib/data/qem/ssh/id_rsa
    (builds the internal SUSE image from `containers/suse/Containerfile` via `qem-bot.build`)
 7. `systemctl daemon-reload && systemctl start qem-bot-gitea-sync`
 
-## OBS Container Build & Deployment (openSUSE)
+## OBS container build and deployment (openSUSE)
 
 The openSUSE container is automatically built in the Open Build Service project
 `devel:openQA` under the package `qem-bot-container` using `containers/opensuse/_service`.
@@ -61,5 +61,11 @@ To configure automatic rebuilds on GitHub `master` branch push:
 Published images are available at:
 `registry.opensuse.org/opensuse/qem-bot:latest`
 
-Use `containers/systemd/qem-bot-opensuse.container` to run the image with
-auto-updates from the registry and configuration mounted at `/etc/openqabot`.
+### Deployment on a host
+
+1. `mkdir -p /var/lib/data/qem/config` and put the `.yml` configuration files
+   there as described in [config](config.md), e.g.
+   `cp metadata/qem-bot/*.yml /var/lib/data/qem/config/`
+2. `ln -s "$PWD/qem-bot/containers/systemd/qem-bot-opensuse.container" /etc/containers/systemd/`
+3. `systemctl daemon-reload && systemctl start qem-bot-opensuse podman-auto-update.timer`
+   (`podman-auto-update.timer` is needed for `AutoUpdate=registry`)
