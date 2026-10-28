@@ -8,13 +8,15 @@ Two container variants are supported:
   Uses the internal SUSE CA and bakes the internal `metadata` repository clone.
   Built locally on host as `localhost/qem-bot` via `qem-bot.build`.
 
-- **openSUSE variant** (`containers/opensuse/Containerfile`):
+- **openSUSE variant** (`containers/opensuse/Dockerfile`):
   Pure openSUSE Tumbleweed container using upstream distribution packages.
   Published by OBS to `registry.opensuse.org/opensuse/qem-bot:latest`.
   Deployment uses external configuration mounted at `/etc/openqabot` (such as
   the standalone quadlet `containers/systemd/qem-bot-opensuse.container`).
 
-## Local Deployment (SUSE Internal)
+Both variants install their zypper package set from `container-packages.txt`.
+
+## Local deployment (SUSE internal)
 
 0. Complete steps from [qem-dashboard](https://github.com/openSUSE/qem-dashboard/tree/main/docs/Containers.md)
 1. `cd /var/lib/data/qem`
